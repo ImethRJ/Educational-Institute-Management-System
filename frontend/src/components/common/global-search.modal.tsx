@@ -43,6 +43,21 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     }
   }, [isOpen]);
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Search Students API
   const { data: studentsResponse, isLoading: loadingStudents } = useQuery({
     queryKey: ['global-search-students', searchTerm],
@@ -155,8 +170,14 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     : quickActions.slice(0, 4);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/60 backdrop-blur-sm p-4"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-2xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      >
         {/* Search Input Bar Header */}
         <div className="p-4 border-b border-border flex items-center space-x-3 bg-muted/20">
           <Search className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -181,6 +202,15 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground uppercase shrink-0">
             Esc to close
           </Badge>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            title="Close Search Modal"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Search Results Body */}
