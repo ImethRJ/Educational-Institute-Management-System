@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient, FeeCategory, Gender } from '@prisma/client';
 import * as argon2 from 'argon2';
 

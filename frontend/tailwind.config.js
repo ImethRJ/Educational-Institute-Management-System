@@ -1,5 +1,7 @@
+import tailwindcssAnimate from 'tailwindcss-animate';
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   darkMode: ['class'],
   content: [
     './pages/**/*.{ts,tsx}',
@@ -50,18 +52,6 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        emerald: {
-          DEFAULT: 'hsl(var(--accent-emerald))',
-        },
-        amber: {
-          DEFAULT: 'hsl(var(--accent-amber))',
-        },
-        rose: {
-          DEFAULT: 'hsl(var(--accent-rose))',
-        },
-        sky: {
-          DEFAULT: 'hsl(var(--accent-sky))',
-        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -70,5 +60,5 @@ module.exports = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
 };

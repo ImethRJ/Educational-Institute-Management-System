@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { CashierCounterModal } from './cashier-counter.modal';
 import { toast } from 'sonner';
-import { Receipt, AlertCircle, CheckCircle2, ShieldAlert, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
+import { Receipt, AlertCircle, CheckCircle2, ShieldAlert, CreditCard, RefreshCw, Loader2, X } from 'lucide-react';
 
 export const InvoiceCenterPage: React.FC = () => {
   const queryClient = useQueryClient();
