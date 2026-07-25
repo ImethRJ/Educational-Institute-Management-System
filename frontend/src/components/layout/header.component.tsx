@@ -68,7 +68,7 @@ export const HeaderComponent: React.FC<HeaderProps> = ({
           </div>
           <div className="hidden md:block text-left">
             <div className="text-xs font-semibold">{admin?.fullName || 'Administrator'}</div>
-            <div className="text-[10px] text-muted-foreground">Main Campus</div>
+            <div className="text-[10px] text-muted-foreground">Main Branch</div>
           </div>
           <Button
             variant="ghost"

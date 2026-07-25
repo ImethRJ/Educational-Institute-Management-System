@@ -66,7 +66,7 @@ export const TimetablePage: React.FC = () => {
                 onChange={(e) => setSelectedHall(e.target.value)}
               >
                 <option value="">All Halls</option>
-                <option value="Hall A">Hall A (Main Campus)</option>
+                <option value="Hall A">Hall A (Main Branch)</option>
                 <option value="Hall B">Hall B (Science Wing)</option>
                 <option value="Hall C">Hall C (Revision Hall)</option>
               </select>
