@@ -88,6 +88,113 @@ async function main() {
   }
   console.log('✅ Grades 1 to 13 seeded successfully.');
 
+  // 5. Seed Sample Teachers
+  const sampleTeachers = [
+    {
+      teacherCode: 'TCH-2026-001',
+      fullName: 'Sunil Shantha',
+      dob: new Date('1985-04-12'),
+      gender: 'MALE' as Gender,
+      joiningDate: new Date('2024-01-01'),
+      nicOrPassport: '851234567V',
+      mobileNumber: '0771122334',
+      email: 'sunil@sector.lk',
+      defaultTuitionCommissionPct: 75.0,
+      admissionCommissionType: 'PERCENTAGE' as const,
+      admissionCommissionValue: 20.0,
+    },
+    {
+      teacherCode: 'TCH-2026-002',
+      fullName: 'Kamani Perera',
+      dob: new Date('1990-09-25'),
+      gender: 'FEMALE' as Gender,
+      joiningDate: new Date('2024-06-01'),
+      nicOrPassport: '908765432V',
+      mobileNumber: '0714455667',
+      email: 'kamani@sector.lk',
+      defaultTuitionCommissionPct: 70.0,
+      admissionCommissionType: 'FIXED_AMOUNT' as const,
+      admissionCommissionValue: 500.0,
+    },
+  ];
+
+  for (const t of sampleTeachers) {
+    await prisma.teacher.upsert({
+      where: { teacherCode: t.teacherCode },
+      update: {},
+      create: t,
+    });
+  }
+  console.log('✅ Sample Teachers seeded successfully.');
+
+  // 6. Seed Sample Students
+  const sampleStudents = [
+    {
+      studentCode: 'SEC-2026-COL-0001',
+      fullName: 'Kasun Perera',
+      dob: new Date('2008-05-14'),
+      gender: 'MALE' as Gender,
+      address: '12, Station Road, Panadura',
+      mobileNumber: '0771234567',
+      email: 'kasun@gmail.com',
+      guardianName: 'Suneth Perera',
+      guardianRelationship: 'Father',
+      guardianMobile: '0719876543',
+      guardianEmail: 'suneth@gmail.com',
+      feeCategory: 'FULL_FEE' as FeeCategory,
+      admissionFeeAmount: 2500,
+    },
+    {
+      studentCode: 'SEC-2026-COL-0002',
+      fullName: 'Amali Fernando',
+      dob: new Date('2009-08-21'),
+      gender: 'FEMALE' as Gender,
+      address: '45, Galle Road, Moratuwa',
+      mobileNumber: '0782345678',
+      email: 'amali@gmail.com',
+      guardianName: 'Nimal Fernando',
+      guardianRelationship: 'Father',
+      guardianMobile: '0702345678',
+      feeCategory: 'HALF_FEE' as FeeCategory,
+      admissionFeeAmount: 2500,
+    },
+    {
+      studentCode: 'SEC-2026-COL-0003',
+      fullName: 'Nuwan Silva',
+      dob: new Date('2010-02-11'),
+      gender: 'MALE' as Gender,
+      address: '78, Temple Lane, Wadduwa',
+      mobileNumber: '0763456789',
+      guardianName: 'Dilhani Silva',
+      guardianRelationship: 'Mother',
+      guardianMobile: '0769876543',
+      feeCategory: 'NO_FEE' as FeeCategory,
+      admissionFeeAmount: 0,
+    },
+    {
+      studentCode: 'SEC-2026-COL-0004',
+      fullName: 'Dilani Jayasinghe',
+      dob: new Date('2008-11-30'),
+      gender: 'FEMALE' as Gender,
+      address: '101, Main Street, Panadura',
+      mobileNumber: '0754567890',
+      guardianName: 'Sarath Jayasinghe',
+      guardianRelationship: 'Father',
+      guardianMobile: '0759876543',
+      feeCategory: 'FULL_FEE' as FeeCategory,
+      admissionFeeAmount: 2500,
+    },
+  ];
+
+  for (const st of sampleStudents) {
+    await prisma.student.upsert({
+      where: { studentCode: st.studentCode },
+      update: {},
+      create: st,
+    });
+  }
+  console.log('✅ Sample Students seeded successfully.');
+
   console.log('✨ Seeding completed successfully!');
 }
 
