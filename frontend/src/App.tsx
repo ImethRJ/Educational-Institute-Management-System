@@ -7,7 +7,8 @@ import { LoginPage } from './pages/login.page';
 import { DashboardLayoutComponent } from './components/layout/dashboard-layout.component';
 import { Toaster } from 'sonner';
 
-import { DashboardPage } from './pages/dashboard.page';
+import { StudentListPage } from './pages/students/student-list.page';
+import { StudentProfilePage } from './pages/students/student-profile.page';
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="space-y-4">
     <h1 className="text-2xl font-bold text-foreground">{title}</h1>
@@ -48,7 +49,8 @@ export const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="students/*" element={<PlaceholderPage title="Student Management" />} />
+            <Route path="students" element={<StudentListPage />} />
+            <Route path="students/:id" element={<StudentProfilePage />} />
             <Route path="teachers/*" element={<PlaceholderPage title="Teacher Management" />} />
             <Route path="academic/*" element={<PlaceholderPage title="Academic & Timetable Management" />} />
             <Route path="attendance/*" element={<PlaceholderPage title="Attendance Management" />} />
