@@ -86,4 +86,8 @@ export class CreateTeacherDto {
   @IsNumber({}, { message: 'Admission commission value must be a number.' })
   @Min(0, { message: 'Commission value cannot be negative.' })
   admissionCommissionValue?: number;
+
+  @ApiPropertyOptional({ example: ['uuid-1', 'uuid-2'], description: 'List of subject IDs taught by teacher' })
+  @IsOptional()
+  subjectIds?: string[];
 }

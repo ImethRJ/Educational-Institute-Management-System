@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
-import { FeeCategory, Gender, Teacher } from '../../types';
+import { FeeCategory, Gender, Teacher, BatchClass } from '../../types';
 import { toast } from 'sonner';
 import { X, UserPlus, ShieldCheck, Loader2 } from 'lucide-react';
 
@@ -35,6 +35,7 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
   const [feeCategory, setFeeCategory] = useState<FeeCategory>('FULL_FEE');
   const [admissionFeeAmount, setAdmissionFeeAmount] = useState<number>(2500);
   const [referredByTeacherId, setReferredByTeacherId] = useState<string>('');
+  const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
 
   // Fetch Teacher List for Tagging
   const { data: teachersResponse } = useQuery({
@@ -43,8 +44,18 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
     enabled: isOpen,
   });
 
+  // Fetch Active Batch Classes for Multi-Subject Enrollment
+  const { data: batchesResponse } = useQuery({
+    queryKey: ['batches-list'],
+    queryFn: () => api.get('/academic/batches'),
+    enabled: isOpen,
+  });
+
   const rawTeachers = (teachersResponse as any)?.data;
   const teachers: Teacher[] = Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.items || [];
+
+  const rawBatches = (batchesResponse as any)?.data;
+  const batches: BatchClass[] = Array.isArray(rawBatches) ? rawBatches : rawBatches?.items || [];
 
   const admissionMutation = useMutation({
     mutationFn: (newStudent: any) => api.post('/students', newStudent),
@@ -77,6 +88,7 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
       feeCategory,
       admissionFeeAmount: Number(admissionFeeAmount),
       referredByTeacherId: referredByTeacherId || undefined,
+      initialBatchIds: selectedBatchIds,
     });
   };
 
@@ -245,6 +257,54 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Multi-Subject Batch Enrollment Section */}
+                <div className="sm:col-span-2 space-y-2 pt-2 border-t border-border">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
+                    <span>Enroll in Initial Batch Classes / Subjects (Multiple Allowed)</span>
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      {selectedBatchIds.length} Classes Selected
+                    </Badge>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 border border-border rounded-md bg-muted/20">
+                    {batches.length > 0 ? (
+                      batches.map((b) => {
+                        const isSelected = selectedBatchIds.includes(b.id);
+                        return (
+                          <label
+                            key={b.id}
+                            className={`flex items-center space-x-2 text-xs p-1.5 rounded cursor-pointer transition-colors ${
+                              isSelected ? 'bg-primary/10 border border-primary/40 font-semibold' : 'hover:bg-muted'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedBatchIds([...selectedBatchIds, b.id]);
+                                } else {
+                                  setSelectedBatchIds(selectedBatchIds.filter((id) => id !== b.id));
+                                }
+                              }}
+                              className="rounded text-primary focus:ring-primary h-3.5 w-3.5"
+                            />
+                            <div className="truncate">
+                              <span className="font-semibold">{b.batchName}</span>
+                              <div className="text-[10px] text-muted-foreground">
+                                {b.subject?.name} • Teacher: <strong className="text-primary">{b.teacher?.fullName}</strong>
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-2 text-center py-3 text-xs text-muted-foreground">
+                        No active batch classes available yet.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

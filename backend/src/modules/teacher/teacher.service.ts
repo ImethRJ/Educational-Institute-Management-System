@@ -53,6 +53,17 @@ export class TeacherService {
         },
       });
 
+      if (dto.subjectIds && dto.subjectIds.length > 0) {
+        for (const subjectId of dto.subjectIds) {
+          await tx.teacherSubject.create({
+            data: {
+              teacherId: newTeacher.id,
+              subjectId,
+            },
+          });
+        }
+      }
+
       await tx.auditLog.create({
         data: {
           adminId,
@@ -85,15 +96,29 @@ export class TeacherService {
   async updateTeacher(id: string, dto: UpdateTeacherDto, adminId: string) {
     await this.getTeacherById(id);
 
+    const { subjectIds, ...teacherFields } = dto;
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.teacher.update({
         where: { id },
         data: {
-          ...dto,
+          ...teacherFields,
           dob: dto.dob ? new Date(dto.dob) : undefined,
           joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : undefined,
         },
       });
+
+      if (subjectIds !== undefined) {
+        await tx.teacherSubject.deleteMany({ where: { teacherId: id } });
+        for (const subjectId of subjectIds) {
+          await tx.teacherSubject.create({
+            data: {
+              teacherId: id,
+              subjectId,
+            },
+          });
+        }
+      }
 
       await tx.auditLog.create({
         data: {

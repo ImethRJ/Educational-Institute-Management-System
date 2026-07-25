@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { Teacher, CommissionType, Gender } from '../../types';
+import { Teacher, CommissionType, Gender, Subject } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
@@ -34,6 +34,18 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
   const [admissionCommissionType, setAdmissionCommissionType] = useState<CommissionType>('PERCENTAGE');
   const [admissionCommissionValue, setAdmissionCommissionValue] = useState<number>(20);
 
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
+
+  // Fetch all Subjects for Multi-Selection
+  const { data: subjectsResponse } = useQuery({
+    queryKey: ['subjects-list'],
+    queryFn: () => api.get('/academic/subjects'),
+    enabled: isOpen,
+  });
+
+  const rawSubjects = (subjectsResponse as any)?.data;
+  const subjects: Subject[] = Array.isArray(rawSubjects) ? rawSubjects : rawSubjects?.items || [];
+
   useEffect(() => {
     if (teacher) {
       setFullName(teacher.fullName || '');
@@ -46,6 +58,10 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       setDefaultTuitionCommissionPct(Number(teacher.defaultTuitionCommissionPct) || 75);
       setAdmissionCommissionType(teacher.admissionCommissionType || 'PERCENTAGE');
       setAdmissionCommissionValue(Number(teacher.admissionCommissionValue) || 20);
+
+      // Populate existing linked subjects
+      const initialSubjectIds = teacher.teacherSubjects?.map((ts: any) => ts.subjectId || ts.subject?.id).filter(Boolean) || [];
+      setSelectedSubjectIds(initialSubjectIds);
     } else {
       setFullName('');
       setNicOrPassport('');
@@ -57,6 +73,7 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       setDefaultTuitionCommissionPct(75);
       setAdmissionCommissionType('PERCENTAGE');
       setAdmissionCommissionValue(20);
+      setSelectedSubjectIds([]);
     }
   }, [teacher, isOpen]);
 
@@ -90,6 +107,7 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       defaultTuitionCommissionPct: Number(defaultTuitionCommissionPct),
       admissionCommissionType,
       admissionCommissionValue: Number(admissionCommissionValue),
+      subjectIds: selectedSubjectIds,
     });
   };
 
@@ -183,6 +201,46 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
                   value={qualifications}
                   onChange={(e) => setQualifications(e.target.value)}
                 />
+              </div>
+
+              {/* Subject Multi-Selection Section */}
+              <div className="sm:col-span-2 space-y-2 pt-2 border-t border-border">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
+                  <span>Assigned Teaching Subjects (Multiple Allowed)</span>
+                  <Badge variant="outline" className="text-[10px] font-normal">
+                    {selectedSubjectIds.length} Selected
+                  </Badge>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 border border-border rounded-md bg-muted/20">
+                  {subjects.map((sub) => {
+                    const isSelected = selectedSubjectIds.includes(sub.id);
+                    return (
+                      <label
+                        key={sub.id}
+                        className={`flex items-center space-x-2 text-xs p-1.5 rounded cursor-pointer transition-colors ${
+                          isSelected ? 'bg-primary/10 border border-primary/40 font-semibold' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSubjectIds([...selectedSubjectIds, sub.id]);
+                            } else {
+                              setSelectedSubjectIds(selectedSubjectIds.filter((id) => id !== sub.id));
+                            }
+                          }}
+                          className="rounded text-primary focus:ring-primary h-3.5 w-3.5"
+                        />
+                        <div className="truncate">
+                          <span>{sub.name}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1">({sub.code})</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
