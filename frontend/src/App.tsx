@@ -7,18 +7,16 @@ import { LoginPage } from './pages/login.page';
 import { DashboardLayoutComponent } from './components/layout/dashboard-layout.component';
 import { Toaster } from 'sonner';
 
+import { DashboardPage } from './pages/dashboard.page';
 import { StudentListPage } from './pages/students/student-list.page';
+import { StudentProfilePage } from './pages/students/student-profile.page';
+import { TeacherListPage } from './pages/teachers/teacher-list.page';
 import { TimetablePage } from './pages/academic/timetable.page';
 import { RapidAttendancePage } from './pages/attendance/rapid-attendance.page';
 import { AttendanceSummaryPage } from './pages/attendance/attendance-summary.page';
-const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
-  <div className="space-y-4">
-    <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-    <div className="p-8 border border-dashed border-border rounded-lg text-center text-muted-foreground text-sm">
-      Module content loading in next step.
-    </div>
-  </div>
-);
+import { InvoiceCenterPage } from './pages/finance/invoice-center.page';
+import { ReportsCenterPage } from './pages/reports/reports-center.page';
+import { SystemSettingsPage } from './pages/settings/system-settings.page';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -57,9 +55,9 @@ export const App: React.FC = () => {
             <Route path="academic" element={<TimetablePage />} />
             <Route path="attendance" element={<RapidAttendancePage />} />
             <Route path="attendance/summary" element={<AttendanceSummaryPage />} />
-            <Route path="finance/*" element={<PlaceholderPage title="Finance & Fee Management" />} />
-            <Route path="reports/*" element={<PlaceholderPage title="Reports & Analytics Center" />} />
-            <Route path="settings/*" element={<PlaceholderPage title="System Settings & Audit Trail" />} />
+            <Route path="finance" element={<InvoiceCenterPage />} />
+            <Route path="reports" element={<ReportsCenterPage />} />
+            <Route path="settings" element={<SystemSettingsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -69,3 +67,4 @@ export const App: React.FC = () => {
     </QueryClientProvider>
   );
 };
+
