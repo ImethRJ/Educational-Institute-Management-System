@@ -11,6 +11,7 @@ import { StudentModule } from './modules/student/student.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
 import { AcademicModule } from './modules/academic/academic.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
     TeacherModule,
     AcademicModule,
     AttendanceModule,
+    FinanceModule,
   ],
   controllers: [],
   providers: [
