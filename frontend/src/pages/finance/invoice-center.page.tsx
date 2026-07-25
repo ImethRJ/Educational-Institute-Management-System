@@ -18,6 +18,10 @@ export const InvoiceCenterPage: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isCashierOpen, setIsCashierOpen] = useState(false);
+  const [payFeeStudentCode, setPayFeeStudentCode] = useState<string | undefined>(undefined);
+  const [payFeeInvoiceId, setPayFeeInvoiceId] = useState<string | undefined>(undefined);
+  const [payFeeAmount, setPayFeeAmount] = useState<number | undefined>(undefined);
+  const [payFeeTeacherId, setPayFeeTeacherId] = useState<string | undefined>(undefined);
 
   // Override Modal state
   const [overrideInvoiceId, setOverrideInvoiceId] = useState<string | null>(null);
@@ -226,13 +230,21 @@ export const InvoiceCenterPage: React.FC = () => {
                         ) : inv.status === 'UNPAID' ? (
                           <Button
                             size="sm"
-                            onClick={() => setIsCashierOpen(true)}
-                            className="text-[11px] h-7 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => {
+                              setPayFeeStudentCode(inv.student?.studentCode);
+                              setPayFeeInvoiceId(inv.id);
+                              setPayFeeAmount(Number(inv.finalAmountDue));
+                              setPayFeeTeacherId(inv.batchClass?.teacherId || inv.batchClass?.teacher?.id);
+                              setIsCashierOpen(true);
+                            }}
+                            className="text-[11px] h-7 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                           >
                             Pay Fee
                           </Button>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground">Settled</span>
+                          <span className="text-[10px] text-emerald-600 font-semibold flex items-center justify-end">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Settled
+                          </span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -297,7 +309,17 @@ export const InvoiceCenterPage: React.FC = () => {
       {/* Cashier Billing Counter Modal */}
       <CashierCounterModal
         isOpen={isCashierOpen}
-        onClose={() => setIsCashierOpen(false)}
+        onClose={() => {
+          setIsCashierOpen(false);
+          setPayFeeStudentCode(undefined);
+          setPayFeeInvoiceId(undefined);
+          setPayFeeAmount(undefined);
+          setPayFeeTeacherId(undefined);
+        }}
+        initialStudentCode={payFeeStudentCode}
+        initialInvoiceId={payFeeInvoiceId}
+        initialAmount={payFeeAmount}
+        initialTeacherId={payFeeTeacherId}
       />
     </div>
   );

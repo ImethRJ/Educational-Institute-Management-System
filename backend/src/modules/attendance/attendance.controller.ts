@@ -2,7 +2,10 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
+  Param,
   Query,
   UseGuards,
   HttpCode,
@@ -37,5 +40,22 @@ export class AttendanceController {
   @ApiOperation({ summary: 'Get attendance history log with filters' })
   async getAttendanceRecords(@Query() query: AttendanceQueryDto) {
     return this.attendanceService.getAttendanceRecords(query);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update an attendance record' })
+  async updateAttendanceRecord(
+    @Param('id') id: string,
+    @Body('status') status: any,
+    @Body('remarks') remarks: string,
+    @CurrentAdmin('id') adminId: string,
+  ) {
+    return this.attendanceService.updateAttendanceRecord(id, status, remarks, adminId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete / reset an attendance record' })
+  async deleteAttendanceRecord(@Param('id') id: string) {
+    return this.attendanceService.deleteAttendanceRecord(id);
   }
 }

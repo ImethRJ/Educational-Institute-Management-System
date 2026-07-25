@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Student, FeeCategory, StudentStatus } from '../../types';
@@ -9,10 +9,12 @@ import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { StudentAdmissionModal } from './student-admission.modal';
-import { Search, UserPlus, Download, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+import { Search, UserPlus, Download, Eye, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 export const StudentListPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -31,6 +33,14 @@ export const StudentListPage: React.FC = () => {
       params.append('page', page.toString());
       params.append('limit', '15');
       return api.get(`/students?${params.toString()}`);
+    },
+  });
+
+  const deleteStudentMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/students/${id}`),
+    onSuccess: () => {
+      toast.success('Student status updated to INACTIVE.');
+      queryClient.invalidateQueries({ queryKey: ['students-list'] });
     },
   });
 
@@ -179,17 +189,33 @@ export const StudentListPage: React.FC = () => {
                       {new Date(st.admissionDate).toLocaleDateString('en-LK')}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/students/${st.id}`);
-                        }}
-                        title="View 360 Profile"
-                      >
-                        <Eye className="h-4 w-4 text-primary" />
-                      </Button>
+                      <div className="flex items-center justify-end space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/students/${st.id}`);
+                          }}
+                          title="View 360 Profile"
+                        >
+                          <Eye className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Deactivate student ${st.fullName} (${st.studentCode})?`)) {
+                              deleteStudentMutation.mutate(st.id);
+                            }
+                          }}
+                          title="Deactivate Student"
+                          className="text-rose-500 hover:text-rose-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

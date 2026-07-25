@@ -136,6 +136,47 @@ export class FinanceService {
   }
 
   /**
+   * Admin Void / Cancel Monthly Invoice
+   */
+  async cancelInvoice(invoiceId: string, adminId: string, reason?: string) {
+    const invoice = await this.prisma.monthlyInvoice.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${invoiceId} not found.`);
+    }
+
+    if (invoice.status === InvoiceStatus.PAID) {
+      throw new BadRequestException('Cannot cancel an invoice that has already been paid.');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const res = await tx.monthlyInvoice.update({
+        where: { id: invoiceId },
+        data: {
+          status: InvoiceStatus.CANCELLED,
+          overrideReason: reason || 'Invoice cancelled by administrator',
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          adminId,
+          action: 'INVOICE_CANCELLED',
+          entityName: 'monthly_invoice',
+          entityId: invoiceId,
+          newValues: { status: InvoiceStatus.CANCELLED, reason },
+        },
+      });
+
+      return res;
+    });
+
+    return updated;
+  }
+
+  /**
    * Admin Zero-Attendance Invoice Override
    */
   async overrideZeroAttendance(
@@ -222,6 +263,32 @@ export class FinanceService {
           where: { id: dto.invoiceId },
           data: { status: newStatus },
         });
+      } else if (!dto.isAdmissionFee) {
+        // Fallback: Find unpaid monthly invoice for student if invoiceId wasn't passed directly
+        const unpaidInvoice = await tx.monthlyInvoice.findFirst({
+          where: { studentId: dto.studentId, status: InvoiceStatus.UNPAID },
+          orderBy: { createdAt: 'asc' },
+          include: { batchClass: { include: { teacher: true } } },
+        });
+
+        if (unpaidInvoice) {
+          dto.invoiceId = unpaidInvoice.id;
+          teacherId = unpaidInvoice.batchClass.teacherId;
+          const teacher = unpaidInvoice.batchClass.teacher;
+          const commissionPct = Number(teacher.defaultTuitionCommissionPct);
+          teacherShareAmount = dto.amountPaid * (commissionPct / 100);
+          instituteShareAmount = dto.amountPaid - teacherShareAmount;
+
+          const newStatus =
+            dto.amountPaid >= Number(unpaidInvoice.finalAmountDue)
+              ? InvoiceStatus.PAID
+              : InvoiceStatus.PARTIALLY_PAID;
+
+          await tx.monthlyInvoice.update({
+            where: { id: unpaidInvoice.id },
+            data: { status: newStatus },
+          });
+        }
       }
       // Case B: Admission Fee Payment
       else if (dto.isAdmissionFee) {
@@ -349,13 +416,25 @@ export class FinanceService {
         },
       });
 
+      // Link payoutId on all included payment records for auditability
+      if (payments.length > 0) {
+        await tx.paymentRecord.updateMany({
+          where: {
+            id: { in: payments.map((p) => p.id) },
+          },
+          data: {
+            payoutId: payout.id,
+          },
+        });
+      }
+
       await tx.auditLog.create({
         data: {
           adminId,
           action: 'TEACHER_PAYOUT_PROCESSED',
           entityName: 'teacher_payout',
           entityId: payout.id,
-          newValues: { payoutNumber, netPayoutAmount },
+          newValues: { payoutNumber, netPayoutAmount, linkedPaymentsCount: payments.length },
         },
       });
 

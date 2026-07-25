@@ -15,6 +15,11 @@ import {
 import { Gender, FeeCategory } from '@prisma/client';
 
 export class CreateStudentDto {
+  @ApiPropertyOptional({ example: 'b19a82e1-4567-4b12-8901-23456789abcd', description: 'Primary branch ID' })
+  @IsOptional()
+  @IsUUID('4', { message: 'Invalid branch ID.' })
+  branchId?: string;
+
   @ApiProperty({ example: 'Kasun Perera', description: 'Student full name' })
   @IsNotEmpty({ message: 'Student full name is required.' })
   @IsString()

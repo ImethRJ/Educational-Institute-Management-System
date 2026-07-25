@@ -6,6 +6,8 @@ export type InvoiceStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED';
 export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CARD' | 'OTHER';
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
 export type CommissionType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+export type EnrollmentStatus = 'ACTIVE' | 'DROPPED' | 'COMPLETED' | 'SUSPENDED';
+export type ClassSessionStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED';
 
 export interface AdminUser {
   id: string;
@@ -15,9 +17,29 @@ export interface AdminUser {
   lastLoginAt?: string;
 }
 
+export interface Guardian {
+  id: string;
+  fullName: string;
+  nicOrPassport?: string;
+  mobileNumber: string;
+  email?: string;
+  address?: string;
+}
+
+export interface StudentGuardian {
+  id: string;
+  studentId: string;
+  guardianId: string;
+  relationship: string;
+  isPrimary: boolean;
+  guardian?: Guardian;
+}
+
 export interface Student {
   id: string;
   studentCode: string;
+  branchId?: string;
+  branch?: { id: string; code: string; name: string };
   fullName: string;
   dob: string;
   gender: Gender;
@@ -25,11 +47,12 @@ export interface Student {
   mobileNumber?: string;
   email?: string;
   status: StudentStatus;
-  guardianName: string;
-  guardianRelationship: string;
-  guardianMobile: string;
+  guardianName?: string;
+  guardianRelationship?: string;
+  guardianMobile?: string;
   guardianEmail?: string;
   guardianAddress?: string;
+  guardians?: StudentGuardian[];
   feeCategory: FeeCategory;
   customConcessionNotes?: string;
   admissionDate: string;
@@ -39,6 +62,8 @@ export interface Student {
   createdAt: string;
   enrollments?: Array<{
     id: string;
+    status?: EnrollmentStatus;
+    customFeeCategory?: FeeCategory;
     batchClass: {
       id: string;
       batchName: string;
@@ -133,7 +158,7 @@ export interface MonthlyInvoice {
   dueDate: string;
   createdAt: string;
   student?: { studentCode: string; fullName: string; mobileNumber?: string };
-  batchClass?: { batchName: string; subject: { name: string } };
+  batchClass?: { batchName: string; teacherId?: string; teacher?: { id: string; fullName: string }; subject: { name: string } };
 }
 
 export interface PaymentRecord {

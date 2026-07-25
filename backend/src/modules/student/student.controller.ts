@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -72,5 +73,24 @@ export class StudentController {
     @CurrentAdmin('id') adminId: string,
   ) {
     return this.studentService.enrollStudentInBatch(id, batchId, adminId);
+  }
+
+  @Delete(':id/enroll/:batchId')
+  @ApiOperation({ summary: 'Unenroll student from a batch class' })
+  async unenrollBatch(
+    @Param('id') id: string,
+    @Param('batchId') batchId: string,
+    @CurrentAdmin('id') adminId: string,
+  ) {
+    return this.studentService.unenrollStudentFromBatch(id, batchId, adminId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Deactivate a student profile' })
+  async deleteStudent(
+    @Param('id') id: string,
+    @CurrentAdmin('id') adminId: string,
+  ) {
+    return this.studentService.deleteStudent(id, adminId);
   }
 }

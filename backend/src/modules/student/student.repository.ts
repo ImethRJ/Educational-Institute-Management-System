@@ -15,6 +15,14 @@ export class StudentRepository {
     return this.prisma.student.findUnique({
       where: { id },
       include: {
+        branch: {
+          select: { id: true, code: true, name: true },
+        },
+        guardians: {
+          include: {
+            guardian: true,
+          },
+        },
         referredByTeacher: {
           select: { id: true, teacherCode: true, fullName: true },
         },
@@ -51,6 +59,15 @@ export class StudentRepository {
         { fullName: { contains: search, mode: 'insensitive' } },
         { mobileNumber: { contains: search } },
         { guardianMobile: { contains: search } },
+        {
+          guardians: {
+            some: {
+              guardian: {
+                mobileNumber: { contains: search },
+              },
+            },
+          },
+        },
       ];
     }
 
@@ -75,6 +92,14 @@ export class StudentRepository {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
+          branch: {
+            select: { id: true, code: true, name: true },
+          },
+          guardians: {
+            include: {
+              guardian: true,
+            },
+          },
           enrollments: {
             where: { isActive: true },
             include: {

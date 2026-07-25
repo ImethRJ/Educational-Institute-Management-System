@@ -37,6 +37,16 @@ export class FinanceController {
     return this.financeService.generateMonthlyInvoices(dto, adminId);
   }
 
+  @Put('invoices/:id/cancel')
+  @ApiOperation({ summary: 'Void / cancel an unpaid monthly invoice' })
+  async cancelInvoice(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentAdmin('id') adminId: string,
+  ) {
+    return this.financeService.cancelInvoice(id, adminId, reason);
+  }
+
   @Put('invoices/:id/override-zero-attendance')
   @ApiOperation({ summary: 'Approve administrator override for 0% attendance suppressed invoice' })
   async overrideZeroAttendance(

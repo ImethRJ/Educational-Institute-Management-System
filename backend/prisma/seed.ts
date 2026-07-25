@@ -188,10 +188,11 @@ async function main() {
   }
   console.log('✅ Sample Teachers seeded successfully.');
 
-  // 6. Seed Sample Students
+  // 6. Seed Sample Students & Guardians
   const sampleStudents = [
     {
       studentCode: 'SEC-2026-COL-0001',
+      branchId: mainBranch.id,
       fullName: 'Kasun Perera',
       dob: new Date('2008-05-14'),
       gender: 'MALE' as Gender,
@@ -207,6 +208,7 @@ async function main() {
     },
     {
       studentCode: 'SEC-2026-COL-0002',
+      branchId: mainBranch.id,
       fullName: 'Amali Fernando',
       dob: new Date('2009-08-21'),
       gender: 'FEMALE' as Gender,
@@ -221,6 +223,7 @@ async function main() {
     },
     {
       studentCode: 'SEC-2026-COL-0003',
+      branchId: mainBranch.id,
       fullName: 'Nuwan Silva',
       dob: new Date('2010-02-11'),
       gender: 'MALE' as Gender,
@@ -234,6 +237,7 @@ async function main() {
     },
     {
       studentCode: 'SEC-2026-COL-0004',
+      branchId: mainBranch.id,
       fullName: 'Dilani Jayasinghe',
       dob: new Date('2008-11-30'),
       gender: 'FEMALE' as Gender,
@@ -248,36 +252,128 @@ async function main() {
   ];
 
   for (const st of sampleStudents) {
-    await prisma.student.upsert({
+    const student = await prisma.student.upsert({
       where: { studentCode: st.studentCode },
-      update: {},
+      update: { branchId: st.branchId },
       create: st,
     });
-  }
-  console.log('✅ Sample Students seeded successfully.');
 
-  // 7. Seed Sample Batch Classes
-  const teacherSunil = await prisma.teacher.findUnique({ where: { teacherCode: 'TCH-2026-001' } });
-  const subjectCMath = await prisma.subject.findUnique({ where: { code: 'CMATH-A/L' } });
+    if (st.guardianName && st.guardianMobile) {
+      // Find or create normalized Guardian
+      let guardian = await prisma.guardian.findFirst({
+        where: { mobileNumber: st.guardianMobile },
+      });
 
-  if (teacherSunil && subjectCMath) {
-    const existingBatch = await prisma.batchClass.findFirst({
-      where: { batchName: '2026 A/L Combined Maths Theory' },
-    });
-    if (!existingBatch) {
-      await prisma.batchClass.create({
-        data: {
-          batchName: '2026 A/L Combined Maths Theory',
-          teacherId: teacherSunil.id,
-          subjectId: subjectCMath.id,
-          branchId: mainBranch.id,
-          academicYearId: currentAcademicYear.id,
-          monthlyFee: 3500.0,
+      if (!guardian) {
+        guardian = await prisma.guardian.create({
+          data: {
+            fullName: st.guardianName,
+            mobileNumber: st.guardianMobile,
+            email: st.guardianEmail,
+            address: st.address,
+          },
+        });
+      }
+
+      // Link Student & Guardian
+      await prisma.studentGuardian.upsert({
+        where: {
+          studentId_guardianId: {
+            studentId: student.id,
+            guardianId: guardian.id,
+          },
+        },
+        update: {},
+        create: {
+          studentId: student.id,
+          guardianId: guardian.id,
+          relationship: st.guardianRelationship || 'Parent',
+          isPrimary: true,
         },
       });
-      console.log('✅ Sample Batch Class seeded successfully.');
     }
   }
+  console.log('✅ Sample Students & Guardians seeded successfully.');
+
+  // 7. Seed Sample Teacher Subjects & Batch Classes
+  const teacherSunil = await prisma.teacher.findUnique({ where: { teacherCode: 'TCH-2026-001' } });
+  const teacherKamani = await prisma.teacher.findUnique({ where: { teacherCode: 'TCH-2026-002' } });
+
+  const subjectCMath = await prisma.subject.findUnique({ where: { code: 'CMATH-A/L' } });
+  const subjectPhysics = await prisma.subject.findUnique({ where: { code: 'PHY-A/L' } });
+  const subjectScience = await prisma.subject.findUnique({ where: { code: 'SCI-G11' } });
+
+  // Link TeacherSubjects
+  if (teacherSunil && subjectCMath) {
+    await prisma.teacherSubject.upsert({
+      where: { teacherId_subjectId: { teacherId: teacherSunil.id, subjectId: subjectCMath.id } },
+      update: {},
+      create: { teacherId: teacherSunil.id, subjectId: subjectCMath.id, customTuitionCommissionPct: 75.0 },
+    });
+  }
+
+  if (teacherKamani && subjectPhysics) {
+    await prisma.teacherSubject.upsert({
+      where: { teacherId_subjectId: { teacherId: teacherKamani.id, subjectId: subjectPhysics.id } },
+      update: {},
+      create: { teacherId: teacherKamani.id, subjectId: subjectPhysics.id, customTuitionCommissionPct: 70.0 },
+    });
+  }
+
+  if (teacherKamani && subjectScience) {
+    await prisma.teacherSubject.upsert({
+      where: { teacherId_subjectId: { teacherId: teacherKamani.id, subjectId: subjectScience.id } },
+      update: {},
+      create: { teacherId: teacherKamani.id, subjectId: subjectScience.id, customTuitionCommissionPct: 70.0 },
+    });
+  }
+
+  // Create Batch Classes
+  const sampleBatches = [
+    {
+      batchName: '2026 A/L Combined Maths Theory',
+      teacherId: teacherSunil?.id,
+      subjectId: subjectCMath?.id,
+      monthlyFee: 3500.0,
+      hallNumber: 'Hall A',
+    },
+    {
+      batchName: '2026 A/L Physics Theory & Revision',
+      teacherId: teacherKamani?.id,
+      subjectId: subjectPhysics?.id,
+      monthlyFee: 3500.0,
+      hallNumber: 'Hall B',
+    },
+    {
+      batchName: '2026 O/L Science Target Class',
+      teacherId: teacherKamani?.id,
+      subjectId: subjectScience?.id,
+      monthlyFee: 2800.0,
+      hallNumber: 'Hall C',
+    },
+  ];
+
+  for (const b of sampleBatches) {
+    if (b.teacherId && b.subjectId) {
+      const existingBatch = await prisma.batchClass.findFirst({
+        where: { batchName: b.batchName },
+      });
+      if (!existingBatch) {
+        await prisma.batchClass.create({
+          data: {
+            batchName: b.batchName,
+            teacherId: b.teacherId,
+            subjectId: b.subjectId,
+            branchId: mainBranch.id,
+            academicYearId: currentAcademicYear.id,
+            monthlyFee: b.monthlyFee,
+            hallNumber: b.hallNumber,
+          },
+        });
+      }
+    }
+  }
+  console.log('✅ Sample Batch Classes and Teacher Subjects seeded successfully.');
 
   console.log('✨ Seeding completed successfully!');
 }

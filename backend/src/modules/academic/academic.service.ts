@@ -29,6 +29,28 @@ export class AcademicService {
     });
   }
 
+  async updateGrade(id: string, dto: any) {
+    const grade = await this.prisma.gradeLevel.findUnique({ where: { id } });
+    if (!grade) throw new NotFoundException(`Grade level with ID ${id} not found.`);
+    return this.prisma.gradeLevel.update({ where: { id }, data: dto });
+  }
+
+  async deleteGrade(id: string) {
+    const subjectsCount = await this.prisma.subject.count({ where: { gradeLevelId: id } });
+    if (subjectsCount > 0) {
+      throw new BadRequestException(`Cannot delete grade level with ${subjectsCount} linked subjects.`);
+    }
+    return this.prisma.gradeLevel.delete({ where: { id } });
+  }
+
+  // Branches
+  async getAllBranches() {
+    return this.prisma.branch.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   // Subjects
   async createSubject(dto: CreateSubjectDto) {
     const existing = await this.prisma.subject.findUnique({
@@ -48,6 +70,20 @@ export class AcademicService {
       orderBy: { name: 'asc' },
       include: { gradeLevel: true },
     });
+  }
+
+  async updateSubject(id: string, dto: any) {
+    const subject = await this.prisma.subject.findUnique({ where: { id } });
+    if (!subject) throw new NotFoundException(`Subject with ID ${id} not found.`);
+    return this.prisma.subject.update({ where: { id }, data: dto });
+  }
+
+  async deleteSubject(id: string) {
+    const batchesCount = await this.prisma.batchClass.count({ where: { subjectId: id } });
+    if (batchesCount > 0) {
+      throw new BadRequestException(`Cannot delete subject linked to ${batchesCount} batch classes.`);
+    }
+    return this.prisma.subject.delete({ where: { id } });
   }
 
   // Batches
@@ -113,6 +149,54 @@ export class AcademicService {
     return batch;
   }
 
+  async updateBatch(id: string, dto: any, adminId: string) {
+    await this.getBatchById(id);
+    const updated = await this.prisma.batchClass.update({
+      where: { id },
+      data: dto,
+      include: {
+        subject: true,
+        teacher: { select: { id: true, fullName: true, teacherCode: true } },
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        adminId,
+        action: 'BATCH_CLASS_UPDATED',
+        entityName: 'batch_class',
+        entityId: id,
+        newValues: dto,
+      },
+    });
+
+    return updated;
+  }
+
+  async deleteBatch(id: string, adminId: string) {
+    const activeEnrollments = await this.prisma.studentEnrollment.count({
+      where: { batchClassId: id, isActive: true },
+    });
+    if (activeEnrollments > 0) {
+      throw new BadRequestException(
+        `Cannot delete batch class with ${activeEnrollments} actively enrolled students. Unenroll students first or archive.`,
+      );
+    }
+
+    const deleted = await this.prisma.batchClass.delete({ where: { id } });
+
+    await this.prisma.auditLog.create({
+      data: {
+        adminId,
+        action: 'BATCH_CLASS_DELETED',
+        entityName: 'batch_class',
+        entityId: id,
+      },
+    });
+
+    return deleted;
+  }
+
   // Timetable Schedules
   async createClassSchedule(dto: CreateScheduleDto) {
     if (dto.startTime >= dto.endTime) {
@@ -168,5 +252,17 @@ export class AcademicService {
         },
       },
     });
+  }
+
+  async updateSchedule(id: string, dto: any) {
+    const schedule = await this.prisma.classSchedule.findUnique({ where: { id } });
+    if (!schedule) throw new NotFoundException(`Schedule slot with ID ${id} not found.`);
+    return this.prisma.classSchedule.update({ where: { id }, data: dto });
+  }
+
+  async deleteSchedule(id: string) {
+    const schedule = await this.prisma.classSchedule.findUnique({ where: { id } });
+    if (!schedule) throw new NotFoundException(`Schedule slot with ID ${id} not found.`);
+    return this.prisma.classSchedule.delete({ where: { id } });
   }
 }

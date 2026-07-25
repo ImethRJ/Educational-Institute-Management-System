@@ -20,12 +20,12 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
 }) => {
   const queryClient = useQueryClient();
 
+  const [branchId, setBranchId] = useState('');
   const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState('2008-05-14');
+  const [dob, setDob] = useState('');
   const [gender, setGender] = useState<Gender>('MALE');
   const [address, setAddress] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [email, setEmail] = useState('');
 
   const [guardianName, setGuardianName] = useState('');
   const [guardianRelationship, setGuardianRelationship] = useState('Father');
@@ -34,8 +34,16 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
 
   const [feeCategory, setFeeCategory] = useState<FeeCategory>('FULL_FEE');
   const [admissionFeeAmount, setAdmissionFeeAmount] = useState<number>(2500);
+  const [admissionFeePaid, setAdmissionFeePaid] = useState<boolean>(true);
   const [referredByTeacherId, setReferredByTeacherId] = useState<string>('');
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
+
+  // Fetch Branches for Selection
+  const { data: branchesResponse } = useQuery({
+    queryKey: ['branches-list'],
+    queryFn: () => api.get('/academic/branches'),
+    enabled: isOpen,
+  });
 
   // Fetch Teacher List for Tagging
   const { data: teachersResponse } = useQuery({
@@ -50,6 +58,9 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
     queryFn: () => api.get('/academic/batches'),
     enabled: isOpen,
   });
+
+  const rawBranches = (branchesResponse as any)?.data;
+  const branches: Array<{ id: string; code: string; name: string }> = Array.isArray(rawBranches) ? rawBranches : [];
 
   const rawTeachers = (teachersResponse as any)?.data;
   const teachers: Teacher[] = Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.items || [];
@@ -75,18 +86,19 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     admissionMutation.mutate({
+      branchId: branchId || undefined,
       fullName,
       dob,
       gender,
       address,
       mobileNumber: mobileNumber || undefined,
-      email: email || undefined,
       guardianName,
       guardianRelationship,
       guardianMobile,
       guardianEmail: guardianEmail || undefined,
       feeCategory,
       admissionFeeAmount: Number(admissionFeeAmount),
+      admissionFeePaid,
       referredByTeacherId: referredByTeacherId || undefined,
       initialBatchIds: selectedBatchIds,
     });
@@ -115,14 +127,30 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
               </Badge>
             </div>
 
-            {/* Section 1: Student Personal Details */}
+            {/* Section 1: Student Personal Details & Branch */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                1. Personal Details
+                1. Personal Details & Branch
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold">Full Name *</label>
+                  <label className="text-xs font-semibold">Institute Branch *</label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    value={branchId}
+                    onChange={(e) => setBranchId(e.target.value)}
+                  >
+                    <option value="">-- Main Branch (Panadura) --</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-xs font-semibold">Student Full Name *</label>
                   <Input
                     placeholder="e.g. Kasun Perera"
                     value={fullName}
@@ -154,27 +182,18 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
                 <div className="sm:col-span-2 space-y-1">
                   <label className="text-xs font-semibold">Home Address *</label>
                   <Input
-                    placeholder="123, Temple Road, Nugegoda"
+                    placeholder="123, Temple Road, Panadura"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold">Mobile Phone (Sri Lanka)</label>
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-xs font-semibold">Student Personal Mobile (Optional)</label>
                   <Input
                     placeholder="0771234567"
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold">Email Address</label>
-                  <Input
-                    type="email"
-                    placeholder="kasun@gmail.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
@@ -205,7 +224,7 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold">Guardian Mobile *</label>
+                  <label className="text-xs font-semibold">Guardian Mobile (Primary SMS) *</label>
                   <Input
                     placeholder="0719876543"
                     value={guardianMobile}
@@ -232,6 +251,29 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
+                  <label className="text-xs font-semibold">Admission Fee (LKR) *</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={admissionFeeAmount}
+                    onChange={(e) => setAdmissionFeeAmount(Number(e.target.value))}
+                    required
+                  />
+                </div>
+                <div className="space-y-1 flex items-end">
+                  <label className="flex items-center space-x-2 text-xs font-semibold p-2 border border-border rounded-md w-full bg-muted/20 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={admissionFeePaid}
+                      onChange={(e) => setAdmissionFeePaid(e.target.checked)}
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span>Mark Admission Fee Paid Now</span>
+                  </label>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-semibold">Monthly Fee Category *</label>
                   <select
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
@@ -241,21 +283,6 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
                     <option value="FULL_FEE">FULL_FEE (100% Standard Tuition Fee)</option>
                     <option value="HALF_FEE">HALF_FEE (50% Concession Discount)</option>
                     <option value="NO_FEE">NO_FEE (100% Full Scholarship)</option>
-                  </select>
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-semibold">Referred / Tagged Teacher (Optional for Commission Sharing)</label>
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
-                    value={referredByTeacherId}
-                    onChange={(e) => setReferredByTeacherId(e.target.value)}
-                  >
-                    <option value="">-- No Referring Teacher --</option>
-                    {teachers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.fullName} ({t.teacherCode})
-                      </option>
-                    ))}
                   </select>
                 </div>
 

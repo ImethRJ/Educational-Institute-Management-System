@@ -22,10 +22,17 @@ export class StudentService {
   async createStudent(dto: CreateStudentDto, adminId: string) {
     const studentCode = await this.studentRepository.generateNextStudentCode('COL');
 
+    let branchIdToUse = dto.branchId;
+    if (!branchIdToUse) {
+      const defaultBranch = await this.prisma.branch.findFirst({ where: { code: 'MAIN' } });
+      branchIdToUse = defaultBranch?.id;
+    }
+
     const student = await this.prisma.$transaction(async (tx) => {
       const newStudent = await tx.student.create({
         data: {
           studentCode,
+          branchId: branchIdToUse,
           fullName: dto.fullName,
           dob: new Date(dto.dob),
           gender: dto.gender,
@@ -44,6 +51,33 @@ export class StudentService {
           referredByTeacherId: dto.referredByTeacherId,
         },
       });
+
+      // Handle normalized Guardian link
+      if (dto.guardianName && dto.guardianMobile) {
+        let guardian = await tx.guardian.findFirst({
+          where: { mobileNumber: dto.guardianMobile },
+        });
+
+        if (!guardian) {
+          guardian = await tx.guardian.create({
+            data: {
+              fullName: dto.guardianName,
+              mobileNumber: dto.guardianMobile,
+              email: dto.guardianEmail,
+              address: dto.guardianAddress || dto.address,
+            },
+          });
+        }
+
+        await tx.studentGuardian.create({
+          data: {
+            studentId: newStudent.id,
+            guardianId: guardian.id,
+            relationship: dto.guardianRelationship || 'Parent',
+            isPrimary: true,
+          },
+        });
+      }
 
       // Enroll in initial batches if provided
       if (dto.initialBatchIds && dto.initialBatchIds.length > 0) {
@@ -157,5 +191,53 @@ export class StudentService {
     });
 
     return enrollment;
+  }
+
+  async unenrollStudentFromBatch(studentId: string, batchClassId: string, adminId: string) {
+    const enrollment = await this.prisma.studentEnrollment.findUnique({
+      where: { studentId_batchClassId: { studentId, batchClassId } },
+    });
+
+    if (!enrollment || !enrollment.isActive) {
+      throw new NotFoundException('Active batch enrollment not found.');
+    }
+
+    const updated = await this.prisma.studentEnrollment.update({
+      where: { id: enrollment.id },
+      data: { isActive: false, status: 'DROPPED', droppedAt: new Date() },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        adminId,
+        action: 'STUDENT_BATCH_UNENROLLED',
+        entityName: 'student_enrollment',
+        entityId: enrollment.id,
+      },
+    });
+
+    return updated;
+  }
+
+  async deleteStudent(id: string, adminId: string) {
+    const student = await this.getStudentById(id);
+
+    const deactivated = await this.prisma.student.update({
+      where: { id },
+      data: { status: 'INACTIVE' },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        adminId,
+        action: 'STUDENT_DEACTIVATED',
+        entityName: 'student',
+        entityId: id,
+        oldValues: { status: student.status },
+        newValues: { status: 'INACTIVE' },
+      },
+    });
+
+    return deactivated;
   }
 }

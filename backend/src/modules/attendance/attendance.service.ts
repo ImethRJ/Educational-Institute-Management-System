@@ -128,4 +128,24 @@ export class AttendanceService {
       percentage: Number(percentage.toFixed(2)),
     };
   }
+
+  async updateAttendanceRecord(id: string, status: any, remarks?: string, adminId?: string) {
+    const record = await this.prisma.studentAttendance.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Attendance record with ID ${id} not found.`);
+
+    return this.prisma.studentAttendance.update({
+      where: { id },
+      data: {
+        status,
+        remarks,
+        markedByAdminId: adminId,
+      },
+    });
+  }
+
+  async deleteAttendanceRecord(id: string) {
+    const record = await this.prisma.studentAttendance.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Attendance record with ID ${id} not found.`);
+    return this.prisma.studentAttendance.delete({ where: { id } });
+  }
 }

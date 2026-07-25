@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { PaymentMethod, Teacher } from '../../types';
@@ -12,40 +12,75 @@ import { X, Receipt, Printer, CreditCard, Search, Loader2 } from 'lucide-react';
 interface CashierCounterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialStudentCode?: string;
+  initialInvoiceId?: string;
+  initialAmount?: number;
+  initialTeacherId?: string;
 }
 
 export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
   isOpen,
   onClose,
+  initialStudentCode,
+  initialInvoiceId,
+  initialAmount,
+  initialTeacherId,
 }) => {
   const queryClient = useQueryClient();
 
-  const [studentCodeInput, setStudentCodeInput] = useState('');
+  const [studentCodeInput, setStudentCodeInput] = useState(initialStudentCode || '');
   const [searchedStudent, setSearchedStudent] = useState<any>(null);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | undefined>(initialInvoiceId);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(initialTeacherId || '');
   const [isAdmissionFee, setIsAdmissionFee] = useState(false);
-  const [amountPaid, setAmountPaid] = useState<number>(3500);
+  const [amountPaid, setAmountPaid] = useState<number>(initialAmount || 3500);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
-  const [amountTendered, setAmountTendered] = useState<number>(5000);
+  const [amountTendered, setAmountTendered] = useState<number>((initialAmount || 3500) + 1500);
 
   const searchMutation = useMutation({
     mutationFn: (code: string) => api.get(`/students/code/${code}`),
     onSuccess: (res: any) => {
       setSearchedStudent(res.data);
-      toast.success(`Student found: ${res.data.fullName}`);
+      toast.success(`Student loaded: ${res.data.fullName}`);
     },
     onError: () => {
       toast.error('Student code not found.');
     },
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      if (initialStudentCode) {
+        setStudentCodeInput(initialStudentCode);
+        searchMutation.mutate(initialStudentCode.trim().toUpperCase());
+      }
+      if (initialInvoiceId) {
+        setSelectedInvoiceId(initialInvoiceId);
+      }
+      if (initialAmount) {
+        setAmountPaid(initialAmount);
+        setAmountTendered(initialAmount);
+      }
+      if (initialTeacherId) {
+        setSelectedTeacherId(initialTeacherId);
+      }
+    }
+  }, [isOpen, initialStudentCode, initialInvoiceId, initialAmount, initialTeacherId]);
+
   const paymentMutation = useMutation({
     mutationFn: (payload: any) => api.post('/finance/payments', payload),
     onSuccess: (res: any) => {
       const receiptNo = res.data?.receiptNumber;
       toast.success(`Payment recorded successfully! Receipt: ${receiptNo}`);
+      
+      // Invalidate all related financial & dashboard query caches
       queryClient.invalidateQueries({ queryKey: ['invoices-list'] });
+      queryClient.invalidateQueries({ queryKey: ['student-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['student-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['payments-list'] });
+      queryClient.invalidateQueries({ queryKey: ['students-list'] });
 
       // Trigger PDF Receipt Download in new window
       if (receiptNo) {
@@ -63,8 +98,6 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
     if (!studentCodeInput.trim()) return;
     searchMutation.mutate(studentCodeInput.trim().toUpperCase());
   };
-
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
 
   // Fetch Teacher List for Payment Linkage
   const { data: teachersResponse } = useQuery({
@@ -85,7 +118,7 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
     paymentMutation.mutate({
       studentId: searchedStudent.id,
       teacherId: selectedTeacherId || undefined,
-      invoiceId: selectedInvoice?.id || undefined,
+      invoiceId: selectedInvoiceId || initialInvoiceId || undefined,
       isAdmissionFee,
       amountPaid: Number(amountPaid),
       paymentMethod,

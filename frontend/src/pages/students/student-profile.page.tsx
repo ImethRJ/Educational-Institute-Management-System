@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Student, MonthlyInvoice } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
-import { ArrowLeft, User, Phone, Mail, Calendar, MapPin, ShieldCheck, Printer, CreditCard } from 'lucide-react';
+import { StudentEnrollModal } from './student-enroll-modal';
+import { CashierCounterModal } from '../finance/cashier-counter.modal';
+import { toast } from 'sonner';
+import { ArrowLeft, User, Phone, Mail, Calendar, MapPin, ShieldCheck, Printer, CreditCard, BookOpen, Plus, Trash2 } from 'lucide-react';
 
 export const StudentProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'attendance'>('overview');
+  const [isEnrollOpen, setIsEnrollOpen] = useState(false);
+  const [isCashierOpen, setIsCashierOpen] = useState(false);
+  const [payFeeInvoiceId, setPayFeeInvoiceId] = useState<string | undefined>(undefined);
+  const [payFeeAmount, setPayFeeAmount] = useState<number | undefined>(undefined);
+  const [payFeeTeacherId, setPayFeeTeacherId] = useState<string | undefined>(undefined);
 
   // Fetch Student 360 Details
   const { data: studentResponse, isLoading } = useQuery({
@@ -26,6 +35,14 @@ export const StudentProfilePage: React.FC = () => {
     queryKey: ['student-invoices', id],
     queryFn: () => api.get(`/finance/invoices`),
     enabled: !!id,
+  });
+
+  const unenrollMutation = useMutation({
+    mutationFn: (batchClassId: string) => api.delete(`/students/${id}/enroll/${batchClassId}`),
+    onSuccess: () => {
+      toast.success('Student unenrolled from class successfully.');
+      queryClient.invalidateQueries({ queryKey: ['student-profile', id] });
+    },
   });
 
   const student: Student = (studentResponse as any)?.data;
@@ -122,60 +139,140 @@ export const StudentProfilePage: React.FC = () => {
 
       {/* Tab 1: Profile Overview */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Personal & Contact Details */}
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold flex items-center space-x-2">
-                <User className="h-4 w-4 text-primary" />
-                <span>Personal & Contact Info</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Date of Birth:</span>
-                <span className="font-semibold">{new Date(student.dob).toLocaleDateString('en-LK')}</span>
-              </div>
-              <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Mobile Number:</span>
-                <span className="font-semibold">{student.mobileNumber || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Email Address:</span>
-                <span className="font-semibold">{student.email || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-muted-foreground">Home Address:</span>
-                <span className="font-semibold text-right max-w-xs">{student.address}</span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Personal & Contact Details */}
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold flex items-center space-x-2">
+                  <User className="h-4 w-4 text-primary" />
+                  <span>Personal & Contact Info</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-muted-foreground">Branch:</span>
+                  <span className="font-semibold text-primary">{student.branch?.name || 'Main Branch'}</span>
+                </div>
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-muted-foreground">Date of Birth:</span>
+                  <span className="font-semibold">{new Date(student.dob).toLocaleDateString('en-LK')}</span>
+                </div>
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-muted-foreground">Mobile Number:</span>
+                  <span className="font-semibold">{student.mobileNumber || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <span className="text-muted-foreground">Home Address:</span>
+                  <span className="font-semibold text-right max-w-xs">{student.address}</span>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Guardian Info */}
+            {/* Guardian Info */}
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold flex items-center space-x-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <span>Guardian Contact Information</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-muted-foreground">Guardian Name:</span>
+                  <span className="font-semibold">{student.guardianName}</span>
+                </div>
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-muted-foreground">Relationship:</span>
+                  <span className="font-semibold">{student.guardianRelationship}</span>
+                </div>
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-muted-foreground">Guardian Mobile:</span>
+                  <span className="font-semibold text-primary">{student.guardianMobile}</span>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <span className="text-muted-foreground">Guardian Email:</span>
+                  <span className="font-semibold">{student.guardianEmail || 'N/A'}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Enrolled Batch Classes & Subjects Section */}
           <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold flex items-center space-x-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                <span>Guardian Contact Information</span>
-              </CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-semibold">Enrolled Batch Classes & Subjects</CardTitle>
+                <Badge variant="outline" className="text-xs font-normal">
+                  {student.enrollments?.length || 0} Classes
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setIsEnrollOpen(true)}
+                className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" /> Enroll in Additional Class / Subject
+              </Button>
             </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Guardian Name:</span>
-                <span className="font-semibold">{student.guardianName}</span>
-              </div>
-              <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Relationship:</span>
-                <span className="font-semibold">{student.guardianRelationship}</span>
-              </div>
-              <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">Guardian Mobile:</span>
-                <span className="font-semibold text-primary">{student.guardianMobile}</span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-muted-foreground">Guardian Email:</span>
-                <span className="font-semibold">{student.guardianEmail || 'N/A'}</span>
-              </div>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Batch Class Name</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Assigned Teacher</TableHead>
+                    <TableHead>Monthly Fee</TableHead>
+                    <TableHead>Enrollment Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {student.enrollments && student.enrollments.length > 0 ? (
+                    student.enrollments.map((enr: any) => (
+                      <TableRow key={enr.id}>
+                        <TableCell className="font-semibold text-xs text-foreground">
+                          {enr.batchClass?.batchName}
+                        </TableCell>
+                        <TableCell className="text-xs">{enr.batchClass?.subject?.name}</TableCell>
+                        <TableCell className="text-xs font-semibold text-emerald-600">
+                          {enr.batchClass?.teacher?.fullName || 'Assigned Instructor'}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono font-bold">
+                          LKR {Number(enr.batchClass?.monthlyFee || 0).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="success" className="text-[10px]">
+                            ACTIVE
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm(`Unenroll ${student.fullName} from batch '${enr.batchClass?.batchName}'?`)) {
+                                unenrollMutation.mutate(enr.batchClass?.id);
+                              }
+                            }}
+                            className="text-xs text-rose-500 hover:text-rose-700"
+                            title="Unenroll from this batch class"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Unenroll
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-6 text-xs text-muted-foreground">
+                        Student is not currently enrolled in any active batch classes.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </div>
@@ -218,7 +315,16 @@ export const StudentProfilePage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         {inv.status === 'UNPAID' && (
-                          <Button size="sm" className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setPayFeeInvoiceId(inv.id);
+                              setPayFeeAmount(Number(inv.finalAmountDue));
+                              setPayFeeTeacherId(inv.batchClass?.teacherId || inv.batchClass?.teacher?.id);
+                              setIsCashierOpen(true);
+                            }}
+                            className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                          >
                             <CreditCard className="h-3.5 w-3.5 mr-1" /> Pay Now
                           </Button>
                         )}
@@ -237,6 +343,30 @@ export const StudentProfilePage: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Student Additional Class Enrollment Modal */}
+      <StudentEnrollModal
+        studentId={student.id}
+        studentName={student.fullName}
+        enrolledBatchIds={(student.enrollments || []).map((e: any) => e.batchClassId || e.batchClass?.id).filter(Boolean)}
+        isOpen={isEnrollOpen}
+        onClose={() => setIsEnrollOpen(false)}
+      />
+
+      {/* Cashier Billing Counter Modal */}
+      <CashierCounterModal
+        isOpen={isCashierOpen}
+        onClose={() => {
+          setIsCashierOpen(false);
+          setPayFeeInvoiceId(undefined);
+          setPayFeeAmount(undefined);
+          setPayFeeTeacherId(undefined);
+        }}
+        initialStudentCode={student.studentCode}
+        initialInvoiceId={payFeeInvoiceId}
+        initialAmount={payFeeAmount}
+        initialTeacherId={payFeeTeacherId}
+      />
     </div>
   );
 };

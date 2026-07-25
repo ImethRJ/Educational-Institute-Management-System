@@ -108,6 +108,7 @@ export const TeacherListPage: React.FC = () => {
                 <TableHead>Teacher Name</TableHead>
                 <TableHead>NIC / Passport</TableHead>
                 <TableHead>Mobile Number</TableHead>
+                <TableHead>Assigned Subjects</TableHead>
                 <TableHead>Tuition Comm. %</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions & Financials</TableHead>
@@ -116,7 +117,7 @@ export const TeacherListPage: React.FC = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-xs text-muted-foreground">
                     Loading teacher directory...
                   </TableCell>
                 </TableRow>
@@ -131,6 +132,19 @@ export const TeacherListPage: React.FC = () => {
                       {tch.nicOrPassport}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{tch.mobileNumber}</TableCell>
+                    <TableCell>
+                      {tch.teacherSubjects && tch.teacherSubjects.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {tch.teacherSubjects.map((ts: any, idx: number) => (
+                            <Badge key={idx} variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
+                              {ts.subject?.name || ts.subjectId}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground italic">No subjects linked</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-bold text-xs border-emerald-600 text-emerald-600">
                         {Number(tch.defaultTuitionCommissionPct).toFixed(1)}% Share
