@@ -88,6 +88,7 @@ export interface Subject {
   name: string;
   standardMonthlyFee: number;
   gradeLevel?: GradeLevel;
+  createdAt?: string;
 }
 
 export interface BatchClass {

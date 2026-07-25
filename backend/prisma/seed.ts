@@ -88,6 +88,67 @@ async function main() {
   }
   console.log('✅ Grades 1 to 13 seeded successfully.');
 
+  // Fetch grade level IDs for linking subjects
+  const g11 = await prisma.gradeLevel.findFirst({ where: { numericOrder: 11 } });
+  const g13 = await prisma.gradeLevel.findFirst({ where: { numericOrder: 13 } });
+
+  // 4b. Seed Subjects
+  const sampleSubjects = [
+    {
+      code: 'MATH-G11',
+      name: 'Mathematics (O/L)',
+      standardMonthlyFee: 2800.0,
+      gradeLevelId: g11?.id || mainBranch.id,
+    },
+    {
+      code: 'SCI-G11',
+      name: 'Science (O/L)',
+      standardMonthlyFee: 2800.0,
+      gradeLevelId: g11?.id || mainBranch.id,
+    },
+    {
+      code: 'ENG-G11',
+      name: 'English Language (O/L)',
+      standardMonthlyFee: 2500.0,
+      gradeLevelId: g11?.id || mainBranch.id,
+    },
+    {
+      code: 'CMATH-A/L',
+      name: 'Combined Mathematics (A/L)',
+      standardMonthlyFee: 3500.0,
+      gradeLevelId: g13?.id || mainBranch.id,
+    },
+    {
+      code: 'PHY-A/L',
+      name: 'Physics (A/L)',
+      standardMonthlyFee: 3500.0,
+      gradeLevelId: g13?.id || mainBranch.id,
+    },
+    {
+      code: 'CHEM-A/L',
+      name: 'Chemistry (A/L)',
+      standardMonthlyFee: 3500.0,
+      gradeLevelId: g13?.id || mainBranch.id,
+    },
+    {
+      code: 'ICT-A/L',
+      name: 'Information & Communication Tech (A/L)',
+      standardMonthlyFee: 3200.0,
+      gradeLevelId: g13?.id || mainBranch.id,
+    },
+  ];
+
+  for (const sub of sampleSubjects) {
+    if (sub.gradeLevelId) {
+      await prisma.subject.upsert({
+        where: { code: sub.code },
+        update: {},
+        create: sub,
+      });
+    }
+  }
+  console.log('✅ Subjects seeded successfully.');
+
   // 5. Seed Sample Teachers
   const sampleTeachers = [
     {
@@ -194,6 +255,29 @@ async function main() {
     });
   }
   console.log('✅ Sample Students seeded successfully.');
+
+  // 7. Seed Sample Batch Classes
+  const teacherSunil = await prisma.teacher.findUnique({ where: { teacherCode: 'TCH-2026-001' } });
+  const subjectCMath = await prisma.subject.findUnique({ where: { code: 'CMATH-A/L' } });
+
+  if (teacherSunil && subjectCMath) {
+    const existingBatch = await prisma.batchClass.findFirst({
+      where: { batchName: '2026 A/L Combined Maths Theory' },
+    });
+    if (!existingBatch) {
+      await prisma.batchClass.create({
+        data: {
+          batchName: '2026 A/L Combined Maths Theory',
+          teacherId: teacherSunil.id,
+          subjectId: subjectCMath.id,
+          branchId: mainBranch.id,
+          academicYearId: currentAcademicYear.id,
+          monthlyFee: 3500.0,
+        },
+      });
+      console.log('✅ Sample Batch Class seeded successfully.');
+    }
+  }
 
   console.log('✨ Seeding completed successfully!');
 }
