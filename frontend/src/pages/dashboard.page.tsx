@@ -168,30 +168,30 @@ export const DashboardPage: React.FC<DashboardProps> = ({
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Card 1: Monthly Tuition Fee Income */}
+          {/* Card 1: Monthly Institute Tuition Commission */}
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">
-                TUITION FEE REVENUE ({currentMonthName})
+                INSTITUTE TUITION COMMISSION ({currentMonthName})
               </CardTitle>
               <Banknote className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                LKR {loadingKPIs ? '...' : (kpi.monthlyTuitionIncome || 0).toLocaleString()}
+                LKR {loadingKPIs ? '...' : (kpi.monthlyInstituteTuitionCommission ?? kpi.monthlyTuitionIncome ?? 0).toLocaleString()}
               </div>
               <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
                 <ArrowUpRight className="h-3 w-3 mr-0.5" />
-                <span>Recurring Monthly Class Tuition Fees</span>
+                <span>Net Institute Share (After Teacher Reduction)</span>
               </div>
             </CardContent>
           </Card>
 
-          {/* Card 2: Total Combined Monthly Revenue */}
+          {/* Card 2: Total Net Institute Revenue */}
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">
-                TOTAL MONTHLY COLLECTIONS
+                TOTAL NET INSTITUTE REVENUE
               </CardTitle>
               <Receipt className="h-4 w-4 text-emerald-600" />
             </CardHeader>
@@ -200,7 +200,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                 LKR {loadingKPIs ? '...' : (kpi.monthlyIncome || 0).toLocaleString()}
               </div>
               <div className="text-[11px] text-muted-foreground flex items-center mt-1">
-                <span>Admission (LKR {kpi.monthlyAdmissionIncome}) + Tuition (LKR {kpi.monthlyTuitionIncome})</span>
+                <span>Admission (LKR {kpi.monthlyAdmissionIncome}) + Institute Commission (LKR {kpi.monthlyInstituteTuitionCommission ?? kpi.monthlyTuitionIncome})</span>
               </div>
             </CardContent>
           </Card>
@@ -231,16 +231,16 @@ export const DashboardPage: React.FC<DashboardProps> = ({
         <Card className="lg:col-span-2 border-border">
           <CardHeader>
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
-              <span>Revenue Breakdown: Tuition vs Admission Fees (LKR)</span>
+              <span>Revenue Breakdown: Institute Commission vs Admission Fees (LKR)</span>
               <Badge variant="outline" className="text-[10px]">
-                Real Database Collections
+                Net Institute Earnings
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-72 w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={kpi.trendData.length > 0 ? kpi.trendData : [{ month: 'Current', tuitionRevenue: 0, admissionRevenue: 0 }]}>
+                <AreaChart data={kpi.trendData.length > 0 ? kpi.trendData : [{ month: 'Current', tuitionInstituteCommission: 0, admissionRevenue: 0 }]}>
                   <defs>
                     <linearGradient id="colorTuition" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#16a34a" stopOpacity={0.4} />
@@ -260,18 +260,18 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                   <Tooltip
                     formatter={(value: any, name: any) => [
                       `LKR ${Number(value).toLocaleString()}`,
-                      name === 'tuitionRevenue'
-                        ? 'Tuition Fee Revenue'
+                      name === 'tuitionInstituteCommission' || name === 'tuitionRevenue'
+                        ? 'Institute Tuition Commission'
                         : name === 'admissionRevenue'
                         ? 'Admission Fee Revenue'
-                        : 'Total Revenue',
+                        : 'Total Net Revenue',
                     ]}
                   />
                   <Legend />
                   <Area
                     type="monotone"
-                    name="Tuition Fee Revenue"
-                    dataKey="tuitionRevenue"
+                    name="Institute Tuition Commission"
+                    dataKey="tuitionInstituteCommission"
                     stroke="#16a34a"
                     strokeWidth={2}
                     fillOpacity={1}

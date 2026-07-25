@@ -491,13 +491,17 @@ export class FinanceService {
       _sum: { amountPaid: true },
     });
 
-    // Tuition Fee Collections for current month
+    // Tuition Fee Collections for current month (with Net Institute Commission & Teacher Share split)
     const tuitionPayments = await this.prisma.paymentRecord.aggregate({
       where: {
         isAdmissionFee: false,
         paymentDate: { gte: startOfMonth, lte: endOfMonth },
       },
-      _sum: { amountPaid: true },
+      _sum: {
+        amountPaid: true,
+        instituteShareAmount: true,
+        teacherShareAmount: true,
+      },
     });
 
     const unpaidInvoices = await this.prisma.monthlyInvoice.aggregate({
@@ -506,7 +510,7 @@ export class FinanceService {
       _count: { id: true },
     });
 
-    // 6-month historical collection trend (Tuition vs Admission)
+    // 6-month historical collection trend
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const trendData = [];
 
@@ -518,34 +522,41 @@ export class FinanceService {
       const [tAgg, aAgg] = await Promise.all([
         this.prisma.paymentRecord.aggregate({
           where: { isAdmissionFee: false, paymentDate: { gte: d, lte: dEnd } },
-          _sum: { amountPaid: true },
+          _sum: { amountPaid: true, instituteShareAmount: true, teacherShareAmount: true },
         }),
         this.prisma.paymentRecord.aggregate({
           where: { isAdmissionFee: true, paymentDate: { gte: d, lte: dEnd } },
-          _sum: { amountPaid: true },
+          _sum: { amountPaid: true, instituteShareAmount: true },
         }),
       ]);
 
-      const tRev = Number(tAgg._sum.amountPaid || 0);
+      const tGross = Number(tAgg._sum.amountPaid || 0);
+      const tInstituteCommission = Number(tAgg._sum.instituteShareAmount || 0);
       const aRev = Number(aAgg._sum.amountPaid || 0);
 
       trendData.push({
         month: mName,
-        tuitionRevenue: tRev,
+        tuitionGrossRevenue: tGross,
+        tuitionInstituteCommission: tInstituteCommission,
         admissionRevenue: aRev,
-        revenue: tRev + aRev,
+        totalNetRevenue: tInstituteCommission + aRev,
       });
     }
 
     const admissionIncome = Number(admissionPayments._sum.amountPaid || 0);
-    const tuitionIncome = Number(tuitionPayments._sum.amountPaid || 0);
+    const grossTuitionIncome = Number(tuitionPayments._sum.amountPaid || 0);
+    const monthlyInstituteTuitionCommission = Number(tuitionPayments._sum.instituteShareAmount || 0);
+    const teacherTuitionShareTotal = Number(tuitionPayments._sum.teacherShareAmount || 0);
 
     return {
       activeStudents,
       activeTeachers,
       monthlyAdmissionIncome: admissionIncome,
-      monthlyTuitionIncome: tuitionIncome,
-      monthlyIncome: admissionIncome + tuitionIncome,
+      grossTuitionIncome,
+      monthlyInstituteTuitionCommission,
+      monthlyTuitionIncome: monthlyInstituteTuitionCommission, // Net institute tuition commission after teacher reduction
+      teacherTuitionShareTotal,
+      monthlyIncome: admissionIncome + monthlyInstituteTuitionCommission, // Net total institute revenue
       outstandingAmount: Number(unpaidInvoices._sum.finalAmountDue || 0),
       unpaidInvoicesCount: unpaidInvoices._count.id || 0,
       trendData,
