@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { StudentModule } from './modules/student/student.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
 import { AcademicModule } from './modules/academic/academic.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AcademicModule } from './modules/academic/academic.module';
     StudentModule,
     TeacherModule,
     AcademicModule,
+    AttendanceModule,
   ],
   controllers: [],
   providers: [
