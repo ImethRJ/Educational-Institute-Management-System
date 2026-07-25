@@ -7,7 +7,7 @@ import { LoginPage } from './pages/login.page';
 import { DashboardLayoutComponent } from './components/layout/dashboard-layout.component';
 import { Toaster } from 'sonner';
 
-// Placeholder route component until subsequent modules
+import { DashboardPage } from './pages/dashboard.page';
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="space-y-4">
     <h1 className="text-2xl font-bold text-foreground">{title}</h1>
@@ -47,7 +47,7 @@ export const App: React.FC = () => {
             }
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<PlaceholderPage title="Executive Summary Dashboard" />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="students/*" element={<PlaceholderPage title="Student Management" />} />
             <Route path="teachers/*" element={<PlaceholderPage title="Teacher Management" />} />
             <Route path="academic/*" element={<PlaceholderPage title="Academic & Timetable Management" />} />
