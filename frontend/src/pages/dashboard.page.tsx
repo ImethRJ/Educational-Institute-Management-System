@@ -54,7 +54,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({
     trendData: [],
   };
 
-  const recentStudents = (studentsData as any)?.data || [];
+  const rawStudents = (studentsData as any)?.data;
+  const recentStudents = Array.isArray(rawStudents) ? rawStudents : rawStudents?.items || [];
 
   const currentMonthName = new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase();
 

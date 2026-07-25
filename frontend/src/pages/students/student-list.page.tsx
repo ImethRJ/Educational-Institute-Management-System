@@ -34,8 +34,13 @@ export const StudentListPage: React.FC = () => {
     },
   });
 
-  const students: Student[] = (studentsResponse as any)?.data || [];
-  const meta = (studentsResponse as any)?.meta || { page: 1, totalPages: 1, totalItems: 0 };
+  const rawData = (studentsResponse as any)?.data;
+  const students: Student[] = Array.isArray(rawData) ? rawData : rawData?.items || [];
+  const meta = {
+    page: rawData?.page || 1,
+    totalPages: rawData?.totalPages || 1,
+    totalItems: rawData?.total || students.length,
+  };
 
   return (
     <div className="space-y-6">
