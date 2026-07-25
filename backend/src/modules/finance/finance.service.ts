@@ -403,12 +403,20 @@ export class FinanceService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    const monthlyPayments = await this.prisma.paymentRecord.aggregate({
+    // Admission Fee Collections for current month
+    const admissionPayments = await this.prisma.paymentRecord.aggregate({
       where: {
-        paymentDate: {
-          gte: startOfMonth,
-          lte: endOfMonth,
-        },
+        isAdmissionFee: true,
+        paymentDate: { gte: startOfMonth, lte: endOfMonth },
+      },
+      _sum: { amountPaid: true },
+    });
+
+    // Tuition Fee Collections for current month
+    const tuitionPayments = await this.prisma.paymentRecord.aggregate({
+      where: {
+        isAdmissionFee: false,
+        paymentDate: { gte: startOfMonth, lte: endOfMonth },
       },
       _sum: { amountPaid: true },
     });
@@ -419,7 +427,7 @@ export class FinanceService {
       _count: { id: true },
     });
 
-    // 6-month historical collection trend
+    // 6-month historical collection trend (Tuition vs Admission)
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const trendData = [];
 
@@ -428,23 +436,37 @@ export class FinanceService {
       const dEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
       const mName = months[d.getMonth()];
 
-      const mAgg = await this.prisma.paymentRecord.aggregate({
-        where: {
-          paymentDate: { gte: d, lte: dEnd },
-        },
-        _sum: { amountPaid: true },
-      });
+      const [tAgg, aAgg] = await Promise.all([
+        this.prisma.paymentRecord.aggregate({
+          where: { isAdmissionFee: false, paymentDate: { gte: d, lte: dEnd } },
+          _sum: { amountPaid: true },
+        }),
+        this.prisma.paymentRecord.aggregate({
+          where: { isAdmissionFee: true, paymentDate: { gte: d, lte: dEnd } },
+          _sum: { amountPaid: true },
+        }),
+      ]);
+
+      const tRev = Number(tAgg._sum.amountPaid || 0);
+      const aRev = Number(aAgg._sum.amountPaid || 0);
 
       trendData.push({
         month: mName,
-        revenue: Number(mAgg._sum.amountPaid || 0),
+        tuitionRevenue: tRev,
+        admissionRevenue: aRev,
+        revenue: tRev + aRev,
       });
     }
+
+    const admissionIncome = Number(admissionPayments._sum.amountPaid || 0);
+    const tuitionIncome = Number(tuitionPayments._sum.amountPaid || 0);
 
     return {
       activeStudents,
       activeTeachers,
-      monthlyIncome: Number(monthlyPayments._sum.amountPaid || 0),
+      monthlyAdmissionIncome: admissionIncome,
+      monthlyTuitionIncome: tuitionIncome,
+      monthlyIncome: admissionIncome + tuitionIncome,
       outstandingAmount: Number(unpaidInvoices._sum.finalAmountDue || 0),
       unpaidInvoicesCount: unpaidInvoices._count.id || 0,
       trendData,

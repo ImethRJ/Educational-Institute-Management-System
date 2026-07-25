@@ -13,6 +13,8 @@ import {
   UserPlus,
   Receipt,
   ArrowUpRight,
+  Sparkles,
+  CreditCard,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -22,6 +24,7 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  Legend,
 } from 'recharts';
 
 interface DashboardProps {
@@ -40,7 +43,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
   });
 
   // Fetch Recent Student Registrations
-  const { data: studentsData, isLoading: loadingStudents } = useQuery({
+  const { data: studentsData } = useQuery({
     queryKey: ['students-summary'],
     queryFn: () => api.get('/students?limit=5'),
   });
@@ -48,6 +51,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({
   const kpi = (dashboardSummaryResponse as any)?.data || {
     activeStudents: 0,
     activeTeachers: 0,
+    monthlyAdmissionIncome: 0,
+    monthlyTuitionIncome: 0,
     monthlyIncome: 0,
     outstandingAmount: 0,
     unpaidInvoicesCount: 0,
@@ -66,7 +71,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
         <div>
           <h1 className="text-2xl font-bold text-foreground">Executive Summary Dashboard</h1>
           <p className="text-xs text-muted-foreground">
-            Live administrative stats and financial analytics for Sector Panadura Campus
+            Live administrative stats, admission metrics & tuition fee analytics for Sector Panadura Campus
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -87,103 +92,163 @@ export const DashboardPage: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 4 Live KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Active Students */}
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              TOTAL ACTIVE STUDENTS
-            </CardTitle>
-            <Users className="h-4 w-4 text-sky-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loadingKPIs ? '...' : kpi.activeStudents.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              <span>Live Database Count</span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPI Section 1: Admissions & Enrollment Metrics */}
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            1. Admission & Student Registration Metrics
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Card 1: Active Enrolled Students */}
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                TOTAL ACTIVE STUDENTS
+              </CardTitle>
+              <Users className="h-4 w-4 text-sky-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loadingKPIs ? '...' : kpi.activeStudents.toLocaleString()}
+              </div>
+              <div className="text-[11px] text-sky-600 flex items-center mt-1 font-medium">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                <span>Active Student Roster</span>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Card 2: Total Active Teachers */}
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              ACTIVE TEACHERS
-            </CardTitle>
-            <UserCheck className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loadingKPIs ? '...' : kpi.activeTeachers.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-muted-foreground flex items-center mt-1">
-              <span>Across Grades 1 to 13</span>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Card 2: Active Teachers */}
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                ACTIVE TEACHERS
+              </CardTitle>
+              <UserCheck className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loadingKPIs ? '...' : kpi.activeTeachers.toLocaleString()}
+              </div>
+              <div className="text-[11px] text-muted-foreground flex items-center mt-1">
+                <span>Grades 1 to 13 A/L</span>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Card 3: Real Monthly Income */}
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              MONTHLY INCOME ({currentMonthName})
-            </CardTitle>
-            <Banknote className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              LKR {loadingKPIs ? '...' : kpi.monthlyIncome.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
-              <ArrowUpRight className="h-3 w-3 mr-0.5" />
-              <span>Real Settled Collections</span>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Card 3: Monthly Admission Fee Revenue */}
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-primary">
+                ADMISSION FEE REVENUE ({currentMonthName})
+              </CardTitle>
+              <UserPlus className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                LKR {loadingKPIs ? '...' : (kpi.monthlyAdmissionIncome || 0).toLocaleString()}
+              </div>
+              <div className="text-[11px] text-primary/80 flex items-center mt-1 font-medium">
+                <ArrowUpRight className="h-3 w-3 mr-0.5" />
+                <span>One-Time New Student Admission Fees</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-        {/* Card 4: Real Outstanding Payments */}
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              OUTSTANDING PAYMENTS
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-rose-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-              LKR {loadingKPIs ? '...' : kpi.outstandingAmount.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-medium">
-              {kpi.unpaidInvoicesCount} unpaid student invoices
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPI Section 2: Tuition & Monthly Fee Collections */}
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center space-x-2">
+          <CreditCard className="h-4 w-4 text-emerald-600" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            2. Tuition & Course Fee Financial Metrics
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Card 1: Monthly Tuition Fee Income */}
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                TUITION FEE REVENUE ({currentMonthName})
+              </CardTitle>
+              <Banknote className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                LKR {loadingKPIs ? '...' : (kpi.monthlyTuitionIncome || 0).toLocaleString()}
+              </div>
+              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
+                <ArrowUpRight className="h-3 w-3 mr-0.5" />
+                <span>Recurring Monthly Class Tuition Fees</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Total Combined Monthly Revenue */}
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                TOTAL MONTHLY COLLECTIONS
+              </CardTitle>
+              <Receipt className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                LKR {loadingKPIs ? '...' : (kpi.monthlyIncome || 0).toLocaleString()}
+              </div>
+              <div className="text-[11px] text-muted-foreground flex items-center mt-1">
+                <span>Admission (LKR {kpi.monthlyAdmissionIncome}) + Tuition (LKR {kpi.monthlyTuitionIncome})</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 3: Outstanding Unpaid Invoices */}
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                OUTSTANDING PAYMENTS
+              </CardTitle>
+              <AlertCircle className="h-4 w-4 text-rose-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                LKR {loadingKPIs ? '...' : (kpi.outstandingAmount || 0).toLocaleString()}
+              </div>
+              <div className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-medium">
+                {kpi.unpaidInvoicesCount} unpaid student invoices
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Analytics Charts & Recent Registrations */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
         {/* Revenue Collection Trend Chart (2 columns) */}
         <Card className="lg:col-span-2 border-border">
           <CardHeader>
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
-              <span>Fee Collection & Revenue Analytics (LKR)</span>
+              <span>Revenue Breakdown: Tuition vs Admission Fees (LKR)</span>
               <Badge variant="outline" className="text-[10px]">
-                Real Collections
+                Real Database Collections
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-72 w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={kpi.trendData.length > 0 ? kpi.trendData : [{ month: 'Current', revenue: 0 }]}>
+                <AreaChart data={kpi.trendData.length > 0 ? kpi.trendData : [{ month: 'Current', tuitionRevenue: 0, admissionRevenue: 0 }]}>
                   <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorTuition" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#16a34a" stopOpacity={0.4} />
                       <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorAdmission" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -193,15 +258,33 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                     tickFormatter={(v) => `LKR ${v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v.toLocaleString()}`}
                   />
                   <Tooltip
-                    formatter={(value: any) => [`LKR ${Number(value).toLocaleString()}`, 'Amount']}
+                    formatter={(value: any, name: any) => [
+                      `LKR ${Number(value).toLocaleString()}`,
+                      name === 'tuitionRevenue'
+                        ? 'Tuition Fee Revenue'
+                        : name === 'admissionRevenue'
+                        ? 'Admission Fee Revenue'
+                        : 'Total Revenue',
+                    ]}
                   />
+                  <Legend />
                   <Area
                     type="monotone"
-                    dataKey="revenue"
+                    name="Tuition Fee Revenue"
+                    dataKey="tuitionRevenue"
                     stroke="#16a34a"
                     strokeWidth={2}
                     fillOpacity={1}
-                    fill="url(#colorRevenue)"
+                    fill="url(#colorTuition)"
+                  />
+                  <Area
+                    type="monotone"
+                    name="Admission Fee Revenue"
+                    dataKey="admissionRevenue"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAdmission)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
