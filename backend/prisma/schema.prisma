@@ -1,0 +1,385 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum FeeCategory {
+  FULL_FEE
+  HALF_FEE
+  NO_FEE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TeacherStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+// 1. System Admin
+model SystemAdmin {
+  id                    String      @id @default(uuid()) @db.Uuid
+  username              String      @unique @db.VarChar(50)
+  email                 String      @unique @db.VarChar(100)
+  passwordHash          String      @map("password_hash") @db.VarChar(255)
+  fullName              String      @map("full_name") @db.VarChar(100)
+  lastLoginAt           DateTime?   @map("last_login_at") @db.Timestamptz
+  failedLoginAttempts   Int         @default(0) @map("failed_login_attempts")
+  lockedUntil           DateTime?   @map("locked_until") @db.Timestamptz
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  markedAttendances     StudentAttendance[]
+  overriddenInvoices    MonthlyInvoice[]
+  recordedPayments      PaymentRecord[]
+  processedPayouts      TeacherPayout[]
+  auditLogs             AuditLog[]
+
+  @@map("system_admin")
+}
+
+// 2. Branch & Academic Structure
+model Branch {
+  id            String        @id @default(uuid()) @db.Uuid
+  code          String        @unique @default("MAIN") @db.VarChar(10)
+  name          String        @default("Main Campus") @db.VarChar(100)
+  address       String?       @db.Text
+  contactNumber String?       @map("contact_number") @db.VarChar(20)
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  batchClasses  BatchClass[]
+
+  @@map("branch")
+}
+
+model AcademicYear {
+  id            String        @id @default(uuid()) @db.Uuid
+  yearName      String        @map("year_name") @db.VarChar(20)
+  startDate     DateTime      @map("start_date") @db.Date
+  endDate       DateTime      @map("end_date") @db.Date
+  isCurrent     Boolean       @default(false) @map("is_current")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  batchClasses  BatchClass[]
+
+  @@map("academic_year")
+}
+
+model GradeLevel {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String        @db.VarChar(50)
+  numericOrder  Int           @map("numeric_order")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  subjects      Subject[]
+
+  @@map("grade_level")
+}
+
+model Subject {
+  id                 String          @id @default(uuid()) @db.Uuid
+  gradeLevelId       String          @map("grade_level_id") @db.Uuid
+  code               String          @unique @db.VarChar(20)
+  name               String          @db.VarChar(100)
+  standardMonthlyFee Decimal         @map("standard_monthly_fee") @db.Decimal(10, 2)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  gradeLevel         GradeLevel      @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  teacherSubjects    TeacherSubject[]
+  batchClasses       BatchClass[]
+
+  @@map("subject")
+}
+
+// 3. Teacher Management
+model Teacher {
+  id                         String            @id @default(uuid()) @db.Uuid
+  teacherCode                String            @unique @map("teacher_code") @db.VarChar(20)
+  fullName                   String            @map("full_name") @db.VarChar(150)
+  nicOrPassport              String            @unique @map("nic_or_passport") @db.VarChar(20)
+  dob                        DateTime          @db.Date
+  gender                     Gender
+  mobileNumber               String            @map("mobile_number") @db.VarChar(20)
+  email                      String?           @db.VarChar(100)
+  address                    String?           @db.Text
+  emergencyContact           String?           @map("emergency_contact") @db.VarChar(100)
+  joiningDate                DateTime          @map("joining_date") @db.Date
+  status                     TeacherStatus     @default(ACTIVE)
+  qualifications             String?           @db.Text
+  photoUrl                   String?           @map("photo_url") @db.Text
+
+  defaultTuitionCommissionPct Decimal          @default(70.00) @map("default_tuition_commission_pct") @db.Decimal(5, 2)
+  admissionCommissionType    CommissionType?   @default(PERCENTAGE) @map("admission_commission_type")
+  admissionCommissionValue   Decimal?          @default(0.00) @map("admission_commission_value") @db.Decimal(10, 2)
+
+  createdAt                  DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                  DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  teacherSubjects            TeacherSubject[]
+  batchClasses               BatchClass[]
+  referredStudents           Student[]
+  paymentRecords             PaymentRecord[]
+  payouts                    TeacherPayout[]
+
+  @@map("teacher")
+}
+
+model TeacherSubject {
+  id                          String    @id @default(uuid()) @db.Uuid
+  teacherId                   String    @map("teacher_id") @db.Uuid
+  subjectId                   String    @map("subject_id") @db.Uuid
+  customTuitionCommissionPct  Decimal?  @map("custom_tuition_commission_pct") @db.Decimal(5, 2)
+
+  teacher                     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject                     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, subjectId])
+  @@map("teacher_subject")
+}
+
+model BatchClass {
+  id               String            @id @default(uuid()) @db.Uuid
+  branchId         String            @map("branch_id") @db.Uuid
+  academicYearId   String            @map("academic_year_id") @db.Uuid
+  subjectId        String            @map("subject_id") @db.Uuid
+  teacherId        String            @map("teacher_id") @db.Uuid
+  batchName        String            @map("batch_name") @db.VarChar(100)
+  monthlyFee       Decimal           @map("monthly_fee") @db.Decimal(10, 2)
+  hallNumber       String?           @map("hall_number") @db.VarChar(50)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  branch           Branch            @relation(fields: [branchId], references: [id])
+  academicYear     AcademicYear      @relation(fields: [academicYearId], references: [id])
+  subject          Subject           @relation(fields: [subjectId], references: [id])
+  teacher          Teacher           @relation(fields: [teacherId], references: [id])
+
+  classSchedules   ClassSchedule[]
+  enrollments      StudentEnrollment[]
+  attendances      StudentAttendance[]
+  invoices         MonthlyInvoice[]
+
+  @@map("batch_class")
+}
+
+model ClassSchedule {
+  id            String        @id @default(uuid()) @db.Uuid
+  batchClassId  String        @map("batch_class_id") @db.Uuid
+  dayOfWeek     Int           @map("day_of_week") // 1 = Mon, 7 = Sun
+  startTime     String        @map("start_time") @db.VarChar(10) // HH:mm format
+  endTime       String        @map("end_time") @db.VarChar(10)
+
+  batchClass    BatchClass    @relation(fields: [batchClassId], references: [id], onDelete: Cascade)
+
+  @@map("class_schedule")
+}
+
+// 4. Student Management
+model Student {
+  id                      String              @id @default(uuid()) @db.Uuid
+  studentCode             String              @unique @map("student_code") @db.VarChar(30)
+  fullName                String              @map("full_name") @db.VarChar(150)
+  dob                     DateTime            @db.Date
+  gender                  Gender
+  address                 String              @db.Text
+  mobileNumber            String?             @map("mobile_number") @db.VarChar(20)
+  email                   String?             @db.VarChar(100)
+  status                  StudentStatus       @default(ACTIVE)
+
+  guardianName            String              @map("guardian_name") @db.VarChar(150)
+  guardianRelationship    String              @map("guardian_relationship") @db.VarChar(50)
+  guardianMobile          String              @map("guardian_mobile") @db.VarChar(20)
+  guardianEmail           String?             @map("guardian_email") @db.VarChar(100)
+  guardianAddress         String?             @map("guardian_address") @db.Text
+
+  feeCategory             FeeCategory         @default(FULL_FEE) @map("fee_category")
+  customConcessionNotes   String?             @map("custom_concession_notes") @db.Text
+
+  admissionDate           DateTime            @default(now()) @map("admission_date") @db.Date
+  admissionFeeAmount      Decimal             @map("admission_fee_amount") @db.Decimal(10, 2)
+  admissionFeePaid        Boolean             @default(false) @map("admission_fee_paid")
+  referredByTeacherId     String?             @map("referred_by_teacher_id") @db.Uuid
+
+  createdAt               DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  referredByTeacher       Teacher?            @relation(fields: [referredByTeacherId], references: [id], onDelete: SetNull)
+  enrollments             StudentEnrollment[]
+  attendances             StudentAttendance[]
+  invoices                MonthlyInvoice[]
+  paymentRecords          PaymentRecord[]
+
+  @@map("student")
+}
+
+model StudentEnrollment {
+  id            String        @id @default(uuid()) @db.Uuid
+  studentId     String        @map("student_id") @db.Uuid
+  batchClassId  String        @map("batch_class_id") @db.Uuid
+  enrolledAt    DateTime      @default(now()) @map("enrolled_at") @db.Date
+  isActive      Boolean       @default(true) @map("is_active")
+
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batchClass    BatchClass    @relation(fields: [batchClassId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, batchClassId])
+  @@map("student_enrollment")
+}
+
+// 5. Attendance Management
+model StudentAttendance {
+  id               String            @id @default(uuid()) @db.Uuid
+  studentId        String            @map("student_id") @db.Uuid
+  batchClassId     String            @map("batch_class_id") @db.Uuid
+  attendanceDate   DateTime          @map("attendance_date") @db.Date
+  status           AttendanceStatus  @default(PRESENT)
+  markedByAdminId  String?           @map("marked_by_admin_id") @db.Uuid
+  remarks          String?           @db.VarChar(255)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batchClass       BatchClass        @relation(fields: [batchClassId], references: [id], onDelete: Cascade)
+  markedByAdmin    SystemAdmin?      @relation(fields: [markedByAdminId], references: [id])
+
+  @@unique([studentId, batchClassId, attendanceDate])
+  @@map("student_attendance")
+}
+
+// 6. Financial & Monthly Fee Management
+model MonthlyInvoice {
+  id                          String            @id @default(uuid()) @db.Uuid
+  invoiceNumber               String            @unique @map("invoice_number") @db.VarChar(30)
+  studentId                   String            @map("student_id") @db.Uuid
+  batchClassId                String            @map("batch_class_id") @db.Uuid
+  billingMonth                Int               @map("billing_month")
+  billingYear                 Int               @map("billing_year")
+
+  originalFee                 Decimal           @map("original_fee") @db.Decimal(10, 2)
+  feeCategoryApplied          FeeCategory       @map("fee_category_applied")
+  finalAmountDue              Decimal           @map("final_amount_due") @db.Decimal(10, 2)
+  status                      InvoiceStatus     @default(UNPAID)
+
+  attendancePercentage        Decimal           @default(0.00) @map("attendance_percentage") @db.Decimal(5, 2)
+  isZeroAttendanceOverride    Boolean           @default(false) @map("is_zero_attendance_override")
+  overrideReason              String?           @map("override_reason") @db.Text
+  overriddenByAdminId         String?           @map("overridden_by_admin_id") @db.Uuid
+
+  dueDate                     DateTime          @map("due_date") @db.Date
+  createdAt                   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  student                     Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  batchClass                  BatchClass        @relation(fields: [batchClassId], references: [id], onDelete: Restrict)
+  overriddenByAdmin           SystemAdmin?      @relation(fields: [overriddenByAdminId], references: [id])
+  paymentRecords              PaymentRecord[]
+
+  @@unique([studentId, batchClassId, billingMonth, billingYear])
+  @@map("monthly_invoice")
+}
+
+model PaymentRecord {
+  id                    String          @id @default(uuid()) @db.Uuid
+  receiptNumber         String          @unique @map("receipt_number") @db.VarChar(30)
+  invoiceId             String?         @map("invoice_id") @db.Uuid
+  studentId             String          @map("student_id") @db.Uuid
+  isAdmissionFee        Boolean         @default(false) @map("is_admission_fee")
+
+  amountPaid            Decimal         @map("amount_paid") @db.Decimal(10, 2)
+  paymentMethod         PaymentMethod   @default(CASH) @map("payment_method")
+  paymentDate           DateTime        @default(now()) @map("payment_date") @db.Timestamptz
+  recordedByAdminId     String          @map("recorded_by_admin_id") @db.Uuid
+
+  teacherId             String?         @map("teacher_id") @db.Uuid
+  teacherShareAmount    Decimal         @default(0.00) @map("teacher_share_amount") @db.Decimal(10, 2)
+  instituteShareAmount  Decimal         @default(0.00) @map("institute_share_amount") @db.Decimal(10, 2)
+
+  remarks               String?         @db.Text
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  invoice               MonthlyInvoice? @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  student               Student         @relation(fields: [studentId], references: [id])
+  teacher               Teacher?        @relation(fields: [teacherId], references: [id])
+  recordedByAdmin       SystemAdmin     @relation(fields: [recordedByAdminId], references: [id])
+
+  @@map("payment_record")
+}
+
+model TeacherPayout {
+  id                          String        @id @default(uuid()) @db.Uuid
+  payoutNumber                String        @unique @map("payout_number") @db.VarChar(30)
+  teacherId                   String        @map("teacher_id") @db.Uuid
+  periodMonth                 Int           @map("period_month")
+  periodYear                  Int           @map("period_year")
+
+  totalTuitionEarned          Decimal       @map("total_tuition_earned") @db.Decimal(10, 2)
+  totalAdmissionCommission    Decimal       @map("total_admission_commission") @db.Decimal(10, 2)
+  netPayoutAmount             Decimal       @map("net_payout_amount") @db.Decimal(10, 2)
+
+  paidAt                      DateTime      @default(now()) @map("paid_at") @db.Timestamptz
+  processedByAdminId          String        @map("processed_by_admin_id") @db.Uuid
+  notes                       String?       @db.Text
+
+  teacher                     Teacher       @relation(fields: [teacherId], references: [id])
+  processedByAdmin            SystemAdmin   @relation(fields: [processedByAdminId], references: [id])
+
+  @@map("teacher_payout")
+}
+
+// 7. Audit Logging
+model AuditLog {
+  id            String        @id @default(uuid()) @db.Uuid
+  adminId       String?       @map("admin_id") @db.Uuid
+  action        String        @db.VarChar(100)
+  entityName    String        @map("entity_name") @db.VarChar(50)
+  entityId      String?       @map("entity_id") @db.Uuid
+  ipAddress     String?       @map("ip_address") @db.VarChar(45)
+  userAgent     String?       @map("user_agent") @db.Text
+  oldValues     Json?         @map("old_values")
+  newValues     Json?         @map("new_values")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  admin         SystemAdmin?  @relation(fields: [adminId], references: [id])
+
+  @@map("audit_log")
+}
