@@ -6,11 +6,13 @@ import { Input } from '../ui/input';
 import { Menu, Sun, Moon, Search, LogOut, User, Zap } from 'lucide-react';
 
 interface HeaderProps {
+  onSearchOpen?: () => void;
   onQuickAdmission?: () => void;
   onQuickCashier?: () => void;
 }
 
 export const HeaderComponent: React.FC<HeaderProps> = ({
+  onSearchOpen,
   onQuickAdmission,
   onQuickCashier,
 }) => {
@@ -24,14 +26,18 @@ export const HeaderComponent: React.FC<HeaderProps> = ({
           <Menu className="h-5 w-5" />
         </Button>
 
-        {/* Global Quick Search Bar */}
-        <div className="relative w-64 md:w-80">
+        {/* Global Quick Search Bar (Command Palette Trigger) */}
+        <button
+          type="button"
+          onClick={onSearchOpen}
+          className="relative w-64 md:w-80 h-9 px-3 pl-9 rounded-md border border-input bg-background text-xs text-muted-foreground flex items-center justify-between hover:border-primary/50 transition-colors shadow-sm cursor-pointer"
+        >
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search student, teacher... (Ctrl+K)"
-            className="pl-9 text-xs h-9 bg-background"
-          />
-        </div>
+          <span>Search student, teacher...</span>
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border rounded text-muted-foreground">
+            Ctrl + K
+          </kbd>
+        </button>
       </div>
 
       <div className="flex items-center space-x-3">
