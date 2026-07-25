@@ -60,4 +60,71 @@ export class ReportsService {
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
   }
+
+  async getTeacherPayoutSummaryData(month?: number, year?: number) {
+    const targetMonth = month || new Date().getMonth() + 1;
+    const targetYear = year || new Date().getFullYear();
+
+    const startDate = new Date(targetYear, targetMonth - 1, 1);
+    const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+
+    const teachers = await this.prisma.teacher.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { fullName: 'asc' },
+    });
+
+    return Promise.all(
+      teachers.map(async (t) => {
+        const agg = await this.prisma.paymentRecord.aggregate({
+          where: {
+            teacherId: t.id,
+            paymentDate: { gte: startDate, lte: endDate },
+          },
+          _sum: {
+            amountPaid: true,
+            teacherShareAmount: true,
+            instituteShareAmount: true,
+          },
+          _count: { id: true },
+        });
+
+        return {
+          teacherId: t.id,
+          teacherCode: t.teacherCode,
+          fullName: t.fullName,
+          commissionPct: Number(t.defaultTuitionCommissionPct),
+          totalGross: Number(agg._sum.amountPaid || 0),
+          teacherPayout: Number(agg._sum.teacherShareAmount || 0),
+          instituteShare: Number(agg._sum.instituteShareAmount || 0),
+          paymentCount: agg._count.id || 0,
+        };
+      }),
+    );
+  }
+
+  async generateTeacherPayoutExcel(month?: number, year?: number): Promise<Buffer> {
+    const data = await this.getTeacherPayoutSummaryData(month, year);
+    const targetMonth = month || new Date().getMonth() + 1;
+    const targetYear = year || new Date().getFullYear();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Teacher Payouts ${targetYear}-${targetMonth}`);
+
+    worksheet.columns = [
+      { header: 'Teacher Code', key: 'teacherCode', width: 18 },
+      { header: 'Teacher Name', key: 'fullName', width: 25 },
+      { header: 'Commission Split %', key: 'commissionPct', width: 20 },
+      { header: 'Gross Fee Collections (LKR)', key: 'totalGross', width: 25 },
+      { header: 'Teacher Net Payout (LKR)', key: 'teacherPayout', width: 25 },
+      { header: 'Institute Share Retained (LKR)', key: 'instituteShare', width: 25 },
+      { header: 'Total Transactions', key: 'paymentCount', width: 20 },
+    ];
+
+    data.forEach((row) => {
+      worksheet.addRow(row);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
 }
