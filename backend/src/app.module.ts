@@ -12,6 +12,10 @@ import { TeacherModule } from './modules/teacher/teacher.module';
 import { AcademicModule } from './modules/academic/academic.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { PdfModule } from './modules/pdf/pdf.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -25,6 +29,10 @@ import { FinanceModule } from './modules/finance/finance.module';
     AcademicModule,
     AttendanceModule,
     FinanceModule,
+    AuditModule,
+    PdfModule,
+    ReportsModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [
