@@ -8,7 +8,9 @@ import { DashboardLayoutComponent } from './components/layout/dashboard-layout.c
 import { Toaster } from 'sonner';
 
 import { StudentListPage } from './pages/students/student-list.page';
-import { TeacherListPage } from './pages/teachers/teacher-list.page';
+import { TimetablePage } from './pages/academic/timetable.page';
+import { RapidAttendancePage } from './pages/attendance/rapid-attendance.page';
+import { AttendanceSummaryPage } from './pages/attendance/attendance-summary.page';
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="space-y-4">
     <h1 className="text-2xl font-bold text-foreground">{title}</h1>
@@ -52,8 +54,9 @@ export const App: React.FC = () => {
             <Route path="students" element={<StudentListPage />} />
             <Route path="students/:id" element={<StudentProfilePage />} />
             <Route path="teachers" element={<TeacherListPage />} />
-            <Route path="academic/*" element={<PlaceholderPage title="Academic & Timetable Management" />} />
-            <Route path="attendance/*" element={<PlaceholderPage title="Attendance Management" />} />
+            <Route path="academic" element={<TimetablePage />} />
+            <Route path="attendance" element={<RapidAttendancePage />} />
+            <Route path="attendance/summary" element={<AttendanceSummaryPage />} />
             <Route path="finance/*" element={<PlaceholderPage title="Finance & Fee Management" />} />
             <Route path="reports/*" element={<PlaceholderPage title="Reports & Analytics Center" />} />
             <Route path="settings/*" element={<PlaceholderPage title="System Settings & Audit Trail" />} />
