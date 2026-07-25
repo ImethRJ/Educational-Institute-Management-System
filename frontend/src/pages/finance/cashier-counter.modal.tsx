@@ -91,14 +91,6 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
     },
   });
 
-  if (!isOpen) return null;
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentCodeInput.trim()) return;
-    searchMutation.mutate(studentCodeInput.trim().toUpperCase());
-  };
-
   // Fetch Teacher List for Payment Linkage
   const { data: teachersResponse } = useQuery({
     queryKey: ['teachers-list'],
@@ -108,6 +100,14 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
 
   const rawTeachers = (teachersResponse as any)?.data;
   const teachers: Teacher[] = Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.items || [];
+
+  if (!isOpen) return null;
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentCodeInput.trim()) return;
+    searchMutation.mutate(studentCodeInput.trim().toUpperCase());
+  };
 
   const handleRecordPayment = () => {
     if (!searchedStudent) {
