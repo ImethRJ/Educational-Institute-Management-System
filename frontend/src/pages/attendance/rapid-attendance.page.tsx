@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { BatchClass, AttendanceStatus } from '../../types';
@@ -33,15 +33,47 @@ export const RapidAttendancePage: React.FC = () => {
     enabled: !!selectedBatchId,
   });
 
+  // Fetch Existing Attendance Records for Selected Batch & Date
+  const { data: existingAttendanceResponse } = useQuery({
+    queryKey: ['existing-attendance', selectedBatchId, attendanceDate],
+    queryFn: () => {
+      const d = new Date(attendanceDate);
+      const params = new URLSearchParams();
+      params.append('batchClassId', selectedBatchId);
+      params.append('month', (d.getMonth() + 1).toString());
+      params.append('year', d.getFullYear().toString());
+      return api.get(`/attendance?${params.toString()}`);
+    },
+    enabled: !!selectedBatchId && !!attendanceDate,
+  });
+
   const batches: BatchClass[] = (batchesResponse as any)?.data || [];
   const enrolledStudents = (batchDetailsResponse as any)?.data?.enrollments || [];
+
+  // Populate attendance map from DB saved records
+  useEffect(() => {
+    if (existingAttendanceResponse && selectedBatchId) {
+      const records: any[] = (existingAttendanceResponse as any)?.data || [];
+      const map: Record<string, AttendanceStatus> = {};
+
+      records.forEach((rec) => {
+        const recDateStr = new Date(rec.attendanceDate).toISOString().split('T')[0];
+        if (rec.batchClassId === selectedBatchId && recDateStr === attendanceDate) {
+          map[rec.studentId] = rec.status;
+        }
+      });
+      setAttendanceMap(map);
+    }
+  }, [existingAttendanceResponse, selectedBatchId, attendanceDate]);
 
   // Submit Bulk Attendance Mutation
   const mutation = useMutation({
     mutationFn: (payload: any) => api.post('/attendance/mark-bulk', payload),
     onSuccess: () => {
       toast.success('Daily attendance saved successfully!');
+      queryClient.invalidateQueries({ queryKey: ['existing-attendance', selectedBatchId, attendanceDate] });
       queryClient.invalidateQueries({ queryKey: ['attendance-records'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
   });
 
