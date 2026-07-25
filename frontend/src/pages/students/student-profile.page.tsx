@@ -19,6 +19,7 @@ export const StudentProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'attendance'>('overview');
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
   const [isCashierOpen, setIsCashierOpen] = useState(false);
+  const [isCashierAdmissionFee, setIsCashierAdmissionFee] = useState(false);
   const [payFeeInvoiceId, setPayFeeInvoiceId] = useState<string | undefined>(undefined);
   const [payFeeAmount, setPayFeeAmount] = useState<number | undefined>(undefined);
   const [payFeeTeacherId, setPayFeeTeacherId] = useState<string | undefined>(undefined);
@@ -98,20 +99,47 @@ export const StudentProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-end space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">Fee Concession Category:</div>
-              <Badge
-                variant={
-                  student.feeCategory === 'FULL_FEE'
-                    ? 'default'
-                    : student.feeCategory === 'HALF_FEE'
-                    ? 'warning'
-                    : 'success'
-                }
-                className="text-xs font-semibold px-3 py-1"
-              >
-                {student.feeCategory}
-              </Badge>
+            <div className="flex flex-col items-end space-y-2">
+              <div className="flex items-center space-x-2">
+                <div className="text-xs text-muted-foreground font-medium">Fee Category:</div>
+                <Badge
+                  variant={
+                    student.feeCategory === 'FULL_FEE'
+                      ? 'default'
+                      : student.feeCategory === 'HALF_FEE'
+                      ? 'warning'
+                      : 'success'
+                  }
+                  className="text-xs font-semibold px-2.5 py-0.5"
+                >
+                  {student.feeCategory}
+                </Badge>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                {student.admissionFeePaid ? (
+                  <Badge variant="success" className="text-xs font-semibold px-2.5 py-0.5">
+                    Admission Fee: PAID
+                  </Badge>
+                ) : (
+                  <>
+                    <Badge variant="destructive" className="text-xs font-semibold px-2.5 py-0.5">
+                      Admission Fee: UNPAID (LKR {Number(student.admissionFeeAmount || 2500).toLocaleString()})
+                    </Badge>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setIsCashierAdmissionFee(true);
+                        setPayFeeAmount(Number(student.admissionFeeAmount || 2500));
+                        setIsCashierOpen(true);
+                      }}
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-7"
+                    >
+                      <CreditCard className="h-3.5 w-3.5 mr-1" /> Pay Admission Fee
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -358,6 +386,7 @@ export const StudentProfilePage: React.FC = () => {
         isOpen={isCashierOpen}
         onClose={() => {
           setIsCashierOpen(false);
+          setIsCashierAdmissionFee(false);
           setPayFeeInvoiceId(undefined);
           setPayFeeAmount(undefined);
           setPayFeeTeacherId(undefined);
@@ -366,6 +395,7 @@ export const StudentProfilePage: React.FC = () => {
         initialInvoiceId={payFeeInvoiceId}
         initialAmount={payFeeAmount}
         initialTeacherId={payFeeTeacherId}
+        initialIsAdmissionFee={isCashierAdmissionFee}
       />
     </div>
   );

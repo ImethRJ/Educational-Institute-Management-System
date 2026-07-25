@@ -137,6 +137,7 @@ export const StudentListPage: React.FC = () => {
                 <TableHead>Full Name</TableHead>
                 <TableHead>Guardian Mobile</TableHead>
                 <TableHead>Fee Category</TableHead>
+                <TableHead>Admission Fee</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Admission Date</TableHead>
                 <TableHead className="text-right">Action</TableHead>
@@ -145,7 +146,7 @@ export const StudentListPage: React.FC = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-xs text-muted-foreground">
                     Loading student roster...
                   </TableCell>
                 </TableRow>
@@ -175,6 +176,14 @@ export const StudentListPage: React.FC = () => {
                         className="text-[10px]"
                       >
                         {st.feeCategory}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={st.admissionFeePaid ? 'success' : 'destructive'}
+                        className="text-[10px]"
+                      >
+                        {st.admissionFeePaid ? 'PAID' : 'UNPAID'}
                       </Badge>
                     </TableCell>
                     <TableCell>

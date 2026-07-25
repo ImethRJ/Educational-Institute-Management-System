@@ -16,6 +16,7 @@ interface CashierCounterModalProps {
   initialInvoiceId?: string;
   initialAmount?: number;
   initialTeacherId?: string;
+  initialIsAdmissionFee?: boolean;
 }
 
 export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
@@ -25,6 +26,7 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
   initialInvoiceId,
   initialAmount,
   initialTeacherId,
+  initialIsAdmissionFee,
 }) => {
   const queryClient = useQueryClient();
 
@@ -32,7 +34,7 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
   const [searchedStudent, setSearchedStudent] = useState<any>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | undefined>(initialInvoiceId);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(initialTeacherId || '');
-  const [isAdmissionFee, setIsAdmissionFee] = useState(false);
+  const [isAdmissionFee, setIsAdmissionFee] = useState(initialIsAdmissionFee || false);
   const [amountPaid, setAmountPaid] = useState<number>(initialAmount || 3500);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [amountTendered, setAmountTendered] = useState<number>((initialAmount || 3500) + 1500);
@@ -64,8 +66,11 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
       if (initialTeacherId) {
         setSelectedTeacherId(initialTeacherId);
       }
+      if (initialIsAdmissionFee !== undefined) {
+        setIsAdmissionFee(initialIsAdmissionFee);
+      }
     }
-  }, [isOpen, initialStudentCode, initialInvoiceId, initialAmount, initialTeacherId]);
+  }, [isOpen, initialStudentCode, initialInvoiceId, initialAmount, initialTeacherId, initialIsAdmissionFee]);
 
   const paymentMutation = useMutation({
     mutationFn: (payload: any) => api.post('/finance/payments', payload),
@@ -165,14 +170,41 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
             <div className="p-3 bg-muted/40 rounded-md border border-border space-y-2 text-xs">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-sm">{searchedStudent.fullName}</span>
-                <Badge variant="outline" className="font-mono text-xs border-primary text-primary">
-                  {searchedStudent.studentCode}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className="font-mono text-xs border-primary text-primary">
+                    {searchedStudent.studentCode}
+                  </Badge>
+                  {searchedStudent.admissionFeePaid ? (
+                    <Badge variant="success" className="text-[10px]">
+                      Admission Fee: PAID
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-[10px]">
+                      Admission Fee: UNPAID (LKR {Number(searchedStudent.admissionFeeAmount || 2500).toLocaleString()})
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between text-muted-foreground">
+              <div className="flex justify-between text-muted-foreground items-center pt-1">
                 <span>Fee Category: <strong className="text-foreground">{searchedStudent.feeCategory}</strong></span>
                 <span>Guardian Mobile: <strong className="text-foreground">{searchedStudent.guardianMobile}</strong></span>
               </div>
+              {!searchedStudent.admissionFeePaid && !isAdmissionFee && (
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setIsAdmissionFee(true);
+                      setAmountPaid(searchedStudent.admissionFeeAmount || 2500);
+                      setAmountTendered((searchedStudent.admissionFeeAmount || 2500) + 500);
+                    }}
+                    className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white h-7 font-semibold"
+                  >
+                    <CreditCard className="h-3 w-3 mr-1" /> Switch to One-Time Admission Fee (LKR {searchedStudent.admissionFeeAmount || 2500})
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
