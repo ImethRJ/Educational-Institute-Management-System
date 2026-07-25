@@ -29,15 +29,15 @@ async function main() {
   const mainBranch = await prisma.branch.upsert({
     where: { code: 'MAIN' },
     update: {
-      name: 'Sector Main Campus (Nugegoda)',
-      address: '123 High Level Road, Nugegoda, Sri Lanka',
-      contactNumber: '+94112345678',
+      name: 'Sector Higher Educational Institute - Panadura',
+      address: '3/B Grace Peiris Road, Panadura',
+      contactNumber: '0382232299',
     },
     create: {
       code: 'MAIN',
-      name: 'Sector Main Campus (Nugegoda)',
-      address: '123 High Level Road, Nugegoda, Sri Lanka',
-      contactNumber: '+94112345678',
+      name: 'Sector Higher Educational Institute - Panadura',
+      address: '3/B Grace Peiris Road, Panadura',
+      contactNumber: '0382232299',
       isActive: true,
     },
   });
@@ -47,11 +47,11 @@ async function main() {
   const currentAcademicYear = await prisma.academicYear.upsert({
     where: { id: '00000000-0000-0000-0000-000000002026' },
     update: {
-      yearName: '2026/2027',
+      yearName: '2026',
     },
     create: {
       id: '00000000-0000-0000-0000-000000002026',
-      yearName: '2026/2027',
+      yearName: '2026',
       startDate: new Date('2026-01-01'),
       endDate: new Date('2026-12-31'),
       isCurrent: true,

@@ -394,4 +394,60 @@ export class FinanceService {
       },
     });
   }
+
+  async getDashboardKPIs() {
+    const activeStudents = await this.prisma.student.count({ where: { status: 'ACTIVE' } });
+    const activeTeachers = await this.prisma.teacher.count({ where: { status: 'ACTIVE' } });
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const monthlyPayments = await this.prisma.paymentRecord.aggregate({
+      where: {
+        paymentDate: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+      _sum: { amountPaid: true },
+    });
+
+    const unpaidInvoices = await this.prisma.monthlyInvoice.aggregate({
+      where: { status: 'UNPAID' },
+      _sum: { finalAmountDue: true },
+      _count: { id: true },
+    });
+
+    // 6-month historical collection trend
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const trendData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const dEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const mName = months[d.getMonth()];
+
+      const mAgg = await this.prisma.paymentRecord.aggregate({
+        where: {
+          paymentDate: { gte: d, lte: dEnd },
+        },
+        _sum: { amountPaid: true },
+      });
+
+      trendData.push({
+        month: mName,
+        revenue: Number(mAgg._sum.amountPaid || 0),
+      });
+    }
+
+    return {
+      activeStudents,
+      activeTeachers,
+      monthlyIncome: Number(monthlyPayments._sum.amountPaid || 0),
+      outstandingAmount: Number(unpaidInvoices._sum.finalAmountDue || 0),
+      unpaidInvoicesCount: unpaidInvoices._count.id || 0,
+      trendData,
+    };
+  }
 }

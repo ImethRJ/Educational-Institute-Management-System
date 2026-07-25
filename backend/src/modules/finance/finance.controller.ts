@@ -47,6 +47,12 @@ export class FinanceController {
     return this.financeService.overrideZeroAttendance(id, dto, adminId);
   }
 
+  @Get('dashboard-summary')
+  @ApiOperation({ summary: 'Get live real-time dashboard KPIs and analytics metrics' })
+  async getDashboardSummary() {
+    return this.financeService.getDashboardKPIs();
+  }
+
   @Get('invoices')
   @ApiOperation({ summary: 'Get list of monthly invoices with filters' })
   @ApiQuery({ name: 'month', required: false })

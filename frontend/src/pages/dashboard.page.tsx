@@ -33,34 +33,30 @@ export const DashboardPage: React.FC<DashboardProps> = ({
   onQuickAdmission,
   onQuickCashier,
 }) => {
-  // Fetch Student Summary
+  // Fetch Real Live Dashboard Metrics from Database
+  const { data: dashboardSummaryResponse, isLoading: loadingKPIs } = useQuery({
+    queryKey: ['dashboard-kpi-summary'],
+    queryFn: () => api.get('/finance/dashboard-summary'),
+  });
+
+  // Fetch Recent Student Registrations
   const { data: studentsData, isLoading: loadingStudents } = useQuery({
     queryKey: ['students-summary'],
     queryFn: () => api.get('/students?limit=5'),
   });
 
-  // Fetch Teacher Summary
-  const { data: teachersData } = useQuery({
-    queryKey: ['teachers-summary'],
-    queryFn: () => api.get('/teachers'),
-  });
+  const kpi = (dashboardSummaryResponse as any)?.data || {
+    activeStudents: 0,
+    activeTeachers: 0,
+    monthlyIncome: 0,
+    outstandingAmount: 0,
+    unpaidInvoicesCount: 0,
+    trendData: [],
+  };
 
-  // Sample Recharts Trend Data for Revenue vs Outstanding
-  const trendData = [
-    { month: 'Jan', revenue: 1850000, outstanding: 320000 },
-    { month: 'Feb', revenue: 1980000, outstanding: 280000 },
-    { month: 'Mar', revenue: 2100000, outstanding: 310000 },
-    { month: 'Apr', revenue: 2050000, outstanding: 450000 },
-    { month: 'May', revenue: 2300000, outstanding: 390000 },
-    { month: 'Jun', revenue: 2420000, outstanding: 410000 },
-    { month: 'Jul', revenue: 2450000, outstanding: 420000 },
-  ];
-
-  const totalStudentsCount = (studentsData as any)?.meta?.totalItems || 1245;
-  const totalTeachersCount = Array.isArray((teachersData as any)?.data)
-    ? (teachersData as any).data.length
-    : 38;
   const recentStudents = (studentsData as any)?.data || [];
+
+  const currentMonthName = new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -69,7 +65,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
         <div>
           <h1 className="text-2xl font-bold text-foreground">Executive Summary Dashboard</h1>
           <p className="text-xs text-muted-foreground">
-            Live administrative stats and financial analytics for Sector Main Campus
+            Live administrative stats and financial analytics for Sector Panadura Campus
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -90,9 +86,9 @@ export const DashboardPage: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 4 KPI Summary Cards */}
+      {/* 4 Live KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Students */}
+        {/* Card 1: Total Active Students */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
@@ -102,16 +98,16 @@ export const DashboardPage: React.FC<DashboardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loadingStudents ? '...' : totalStudentsCount.toLocaleString()}
+              {loadingKPIs ? '...' : kpi.activeStudents.toLocaleString()}
             </div>
             <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
               <TrendingUp className="h-3 w-3 mr-1" />
-              <span>+12 new admissions this week</span>
+              <span>Live Database Count</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 2: Total Teachers */}
+        {/* Card 2: Total Active Teachers */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
@@ -120,31 +116,35 @@ export const DashboardPage: React.FC<DashboardProps> = ({
             <UserCheck className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTeachersCount}</div>
+            <div className="text-2xl font-bold">
+              {loadingKPIs ? '...' : kpi.activeTeachers.toLocaleString()}
+            </div>
             <div className="text-[11px] text-muted-foreground flex items-center mt-1">
               <span>Across Grades 1 to 13</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 3: Monthly Income */}
+        {/* Card 3: Real Monthly Income */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
-              MONTHLY INCOME (JULY)
+              MONTHLY INCOME ({currentMonthName})
             </CardTitle>
             <Banknote className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">LKR 2.45M</div>
+            <div className="text-2xl font-bold">
+              LKR {loadingKPIs ? '...' : kpi.monthlyIncome.toLocaleString()}
+            </div>
             <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center mt-1 font-medium">
               <ArrowUpRight className="h-3 w-3 mr-0.5" />
-              <span>+8% vs June collections</span>
+              <span>Real Settled Collections</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 4: Outstanding Payments */}
+        {/* Card 4: Real Outstanding Payments */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
@@ -154,10 +154,10 @@ export const DashboardPage: React.FC<DashboardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-              LKR 420,000
+              LKR {loadingKPIs ? '...' : kpi.outstandingAmount.toLocaleString()}
             </div>
             <div className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-medium">
-              85 unpaid student invoices
+              {kpi.unpaidInvoicesCount} unpaid student invoices
             </div>
           </CardContent>
         </Card>
@@ -171,14 +171,14 @@ export const DashboardPage: React.FC<DashboardProps> = ({
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               <span>Fee Collection & Revenue Analytics (LKR)</span>
               <Badge variant="outline" className="text-[10px]">
-                2026 Academic Term
+                Real Collections
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-72 w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData}>
+                <AreaChart data={kpi.trendData.length > 0 ? kpi.trendData : [{ month: 'Current', revenue: 0 }]}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#16a34a" stopOpacity={0.4} />
@@ -189,7 +189,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                   <XAxis dataKey="month" fontSize={12} />
                   <YAxis
                     fontSize={11}
-                    tickFormatter={(v) => `LKR ${(v / 1000000).toFixed(1)}M`}
+                    tickFormatter={(v) => `LKR ${v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v.toLocaleString()}`}
                   />
                   <Tooltip
                     formatter={(value: any) => [`LKR ${Number(value).toLocaleString()}`, 'Amount']}
@@ -243,7 +243,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                 ))
               ) : (
                 <div className="text-center py-6 text-xs text-muted-foreground">
-                  No recent student admissions recorded.
+                  No student admissions recorded yet.
                 </div>
               )}
             </div>
