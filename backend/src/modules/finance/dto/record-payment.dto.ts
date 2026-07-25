@@ -38,6 +38,11 @@ export class RecordPaymentDto {
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 
+  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Teacher ID for manual split override' })
+  @IsOptional()
+  @IsUUID('4', { message: 'Invalid teacher UUID.' })
+  teacherId?: string;
+
   @ApiPropertyOptional({ example: 'Payment received at counter', description: 'Administrative remarks' })
   @IsOptional()
   @IsString()
