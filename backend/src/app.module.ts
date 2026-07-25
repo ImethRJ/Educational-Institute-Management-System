@@ -9,6 +9,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { AuthModule } from './modules/auth/auth.module';
 import { StudentModule } from './modules/student/student.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
+import { AcademicModule } from './modules/academic/academic.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { TeacherModule } from './modules/teacher/teacher.module';
     AuthModule,
     StudentModule,
     TeacherModule,
+    AcademicModule,
   ],
   controllers: [],
   providers: [
