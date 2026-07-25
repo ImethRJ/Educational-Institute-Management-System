@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
-import { FeeCategory, Gender } from '../../types';
+import { FeeCategory, Gender, Teacher } from '../../types';
 import { toast } from 'sonner';
 import { X, UserPlus, ShieldCheck, Loader2 } from 'lucide-react';
 
@@ -34,6 +34,17 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
 
   const [feeCategory, setFeeCategory] = useState<FeeCategory>('FULL_FEE');
   const [admissionFeeAmount, setAdmissionFeeAmount] = useState<number>(2500);
+  const [referredByTeacherId, setReferredByTeacherId] = useState<string>('');
+
+  // Fetch Teacher List for Tagging
+  const { data: teachersResponse } = useQuery({
+    queryKey: ['teachers-list'],
+    queryFn: () => api.get('/teachers'),
+    enabled: isOpen,
+  });
+
+  const rawTeachers = (teachersResponse as any)?.data;
+  const teachers: Teacher[] = Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.items || [];
 
   const admissionMutation = useMutation({
     mutationFn: (newStudent: any) => api.post('/students', newStudent),
@@ -43,6 +54,7 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
       );
       queryClient.invalidateQueries({ queryKey: ['students-list'] });
       queryClient.invalidateQueries({ queryKey: ['students-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-kpi-summary'] });
       onClose();
     },
   });
@@ -64,6 +76,7 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
       guardianEmail: guardianEmail || undefined,
       feeCategory,
       admissionFeeAmount: Number(admissionFeeAmount),
+      referredByTeacherId: referredByTeacherId || undefined,
     });
   };
 
@@ -218,14 +231,20 @@ export const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({
                     <option value="NO_FEE">NO_FEE (100% Full Scholarship)</option>
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold">One-Time Admission Fee (LKR) *</label>
-                  <Input
-                    type="number"
-                    value={admissionFeeAmount}
-                    onChange={(e) => setAdmissionFeeAmount(Number(e.target.value))}
-                    required
-                  />
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-semibold">Referred / Tagged Teacher (Optional for Commission Sharing)</label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
+                    value={referredByTeacherId}
+                    onChange={(e) => setReferredByTeacherId(e.target.value)}
+                  >
+                    <option value="">-- No Referring Teacher --</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.fullName} ({t.teacherCode})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

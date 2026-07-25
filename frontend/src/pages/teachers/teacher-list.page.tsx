@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Teacher } from '../../types';
 import { Button } from '../../components/ui/button';
@@ -8,13 +8,26 @@ import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { TeacherCommissionModal } from './teacher-commission.modal';
-import { Search, UserCheck, Percent, Settings, Phone, Calendar } from 'lucide-react';
+import { TeacherFormModal } from './teacher-form.modal';
+import { TeacherEarningsModal } from './teacher-earnings.modal';
+import { toast } from 'sonner';
+import { Search, UserCheck, Percent, UserPlus, Edit, Banknote, Trash2 } from 'lucide-react';
 
 export const TeacherListPage: React.FC = () => {
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
-  const [isCommissionModalOpen, setIsCommissionModalOpen] = useState(false);
+
+  // Modals state
+  const [formTeacher, setFormTeacher] = useState<Teacher | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const [commissionTeacher, setCommissionTeacher] = useState<Teacher | null>(null);
+  const [isCommissionOpen, setIsCommissionOpen] = useState(false);
+
+  const [earningsTeacher, setEarningsTeacher] = useState<Teacher | null>(null);
+  const [isEarningsOpen, setIsEarningsOpen] = useState(false);
 
   const { data: teachersResponse, isLoading } = useQuery({
     queryKey: ['teachers-list', search, statusFilter],
@@ -26,18 +39,37 @@ export const TeacherListPage: React.FC = () => {
     },
   });
 
-  const teachers: Teacher[] = (teachersResponse as any)?.data || [];
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/teachers/${id}`),
+    onSuccess: () => {
+      toast.success('Teacher deactivated successfully.');
+      queryClient.invalidateQueries({ queryKey: ['teachers-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-kpi-summary'] });
+    },
+  });
+
+  const rawTeachers = (teachersResponse as any)?.data;
+  const teachers: Teacher[] = Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.items || [];
 
   return (
     <div className="space-y-6">
       {/* Top Title Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Teacher Directory & Earnings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Teacher Directory & Financial Earnings</h1>
           <p className="text-xs text-muted-foreground">
-            Manage teacher profiles, subject allocations, and tuition & admission commission rules
+            Full CRUD management of teacher profiles, commission rules, and linked student payment revenue splits
           </p>
         </div>
+        <Button
+          onClick={() => {
+            setFormTeacher(null);
+            setIsFormOpen(true);
+          }}
+          className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          <UserPlus className="h-4 w-4 mr-1.5" /> Register New Teacher
+        </Button>
       </div>
 
       {/* Filter & Search Bar */}
@@ -78,7 +110,7 @@ export const TeacherListPage: React.FC = () => {
                 <TableHead>Mobile Number</TableHead>
                 <TableHead>Tuition Comm. %</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Actions & Financials</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -110,17 +142,62 @@ export const TeacherListPage: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedTeacher(tch);
-                          setIsCommissionModalOpen(true);
-                        }}
-                        className="text-xs"
-                      >
-                        <Percent className="h-3.5 w-3.5 mr-1 text-emerald-600" /> Commission Rules
-                      </Button>
+                      <div className="flex items-center justify-end space-x-1">
+                        {/* Earnings & Payout Breakdown */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEarningsTeacher(tch);
+                            setIsEarningsOpen(true);
+                          }}
+                          className="text-xs text-emerald-600 border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                          title="View Earnings Breakdown"
+                        >
+                          <Banknote className="h-3.5 w-3.5 mr-1" /> Earnings Log
+                        </Button>
+
+                        {/* Edit Teacher Profile */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setFormTeacher(tch);
+                            setIsFormOpen(true);
+                          }}
+                          title="Edit Teacher Profile"
+                        >
+                          <Edit className="h-4 w-4 text-primary" />
+                        </Button>
+
+                        {/* Commission Rules */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCommissionTeacher(tch);
+                            setIsCommissionOpen(true);
+                          }}
+                          title="Configure Commission Rules"
+                        >
+                          <Percent className="h-4 w-4 text-emerald-600" />
+                        </Button>
+
+                        {/* Deactivate Teacher */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm(`Deactivate teacher ${tch.fullName}?`)) {
+                              deleteMutation.mutate(tch.id);
+                            }
+                          }}
+                          title="Deactivate Teacher"
+                          className="text-rose-500 hover:text-rose-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -136,12 +213,37 @@ export const TeacherListPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Teacher Form Modal (Create / Edit) */}
+      <TeacherFormModal
+        teacher={formTeacher}
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setFormTeacher(null);
+        }}
+      />
+
       {/* Commission Configuration Modal */}
-      {selectedTeacher && (
+      {commissionTeacher && (
         <TeacherCommissionModal
-          teacher={selectedTeacher}
-          isOpen={isCommissionModalOpen}
-          onClose={() => setIsCommissionModalOpen(false)}
+          teacher={commissionTeacher}
+          isOpen={isCommissionOpen}
+          onClose={() => {
+            setIsCommissionOpen(false);
+            setCommissionTeacher(null);
+          }}
+        />
+      )}
+
+      {/* Teacher Financial Earnings & Payout Breakdown Modal */}
+      {earningsTeacher && (
+        <TeacherEarningsModal
+          teacher={earningsTeacher}
+          isOpen={isEarningsOpen}
+          onClose={() => {
+            setIsEarningsOpen(false);
+            setEarningsTeacher(null);
+          }}
         />
       )}
     </div>

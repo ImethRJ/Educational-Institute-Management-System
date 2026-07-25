@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { PaymentMethod } from '../../types';
+import { PaymentMethod, Teacher } from '../../types';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -64,6 +64,18 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
     searchMutation.mutate(studentCodeInput.trim().toUpperCase());
   };
 
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+
+  // Fetch Teacher List for Payment Linkage
+  const { data: teachersResponse } = useQuery({
+    queryKey: ['teachers-list'],
+    queryFn: () => api.get('/teachers'),
+    enabled: isOpen,
+  });
+
+  const rawTeachers = (teachersResponse as any)?.data;
+  const teachers: Teacher[] = Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.items || [];
+
   const handleRecordPayment = () => {
     if (!searchedStudent) {
       toast.error('Please search and select a student first.');
@@ -72,6 +84,7 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
 
     paymentMutation.mutate({
       studentId: searchedStudent.id,
+      teacherId: selectedTeacherId || undefined,
       invoiceId: selectedInvoice?.id || undefined,
       isAdmissionFee,
       amountPaid: Number(amountPaid),
@@ -159,6 +172,22 @@ export const CashierCounterModal: React.FC<CashierCounterModalProps> = ({
                 >
                   One-Time Admission Fee (LKR {searchedStudent.admissionFeeAmount})
                 </Button>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">Link Teacher for Revenue Split (Optional)</label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
+                  value={selectedTeacherId}
+                  onChange={(e) => setSelectedTeacherId(e.target.value)}
+                >
+                  <option value="">-- Institute General Account --</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.fullName} ({t.teacherCode} - {t.defaultTuitionCommissionPct}% Share)
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
