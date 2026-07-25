@@ -8,7 +8,7 @@ import { DashboardLayoutComponent } from './components/layout/dashboard-layout.c
 import { Toaster } from 'sonner';
 
 import { StudentListPage } from './pages/students/student-list.page';
-import { StudentProfilePage } from './pages/students/student-profile.page';
+import { TeacherListPage } from './pages/teachers/teacher-list.page';
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="space-y-4">
     <h1 className="text-2xl font-bold text-foreground">{title}</h1>
@@ -51,7 +51,7 @@ export const App: React.FC = () => {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="students" element={<StudentListPage />} />
             <Route path="students/:id" element={<StudentProfilePage />} />
-            <Route path="teachers/*" element={<PlaceholderPage title="Teacher Management" />} />
+            <Route path="teachers" element={<TeacherListPage />} />
             <Route path="academic/*" element={<PlaceholderPage title="Academic & Timetable Management" />} />
             <Route path="attendance/*" element={<PlaceholderPage title="Attendance Management" />} />
             <Route path="finance/*" element={<PlaceholderPage title="Finance & Fee Management" />} />
