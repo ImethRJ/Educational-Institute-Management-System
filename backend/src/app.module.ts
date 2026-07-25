@@ -8,6 +8,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { StudentModule } from './modules/student/student.module';
+import { TeacherModule } from './modules/teacher/teacher.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { StudentModule } from './modules/student/student.module';
     }),
     AuthModule,
     StudentModule,
+    TeacherModule,
   ],
   controllers: [],
   providers: [
