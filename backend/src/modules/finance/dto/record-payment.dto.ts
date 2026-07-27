@@ -39,7 +39,7 @@ export class RecordPaymentDto {
   @ApiProperty({ example: 3500.0, description: "Amount paid in LKR" })
   @IsNotEmpty({ message: "Amount paid is required." })
   @IsNumber({}, { message: "Amount paid must be a number." })
-  @Min(0.01, { message: "Payment amount must be greater than zero." })
+  @Min(0, { message: "Payment amount cannot be negative." })
   amountPaid: number;
 
   @ApiProperty({
