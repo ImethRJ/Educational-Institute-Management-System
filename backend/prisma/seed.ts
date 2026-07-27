@@ -295,9 +295,9 @@ async function main() {
   const teacherSunil = await prisma.teacher.findUnique({ where: { teacherCode: 'TCH-2026-001' } });
   const teacherKamani = await prisma.teacher.findUnique({ where: { teacherCode: 'TCH-2026-002' } });
 
-  const subjectCMath = await prisma.subject.findUnique({ where: { code: 'CMATH-A/L' } });
-  const subjectPhysics = await prisma.subject.findUnique({ where: { code: 'PHY-A/L' } });
-  const subjectScience = await prisma.subject.findUnique({ where: { code: 'SCI-G11' } });
+  const subjectCMath = await prisma.subject.findUnique({ where: { code: 'CMATH' } });
+  const subjectPhysics = await prisma.subject.findUnique({ where: { code: 'PHY' } });
+  const subjectScience = await prisma.subject.findUnique({ where: { code: 'SCI' } });
 
   // Link TeacherSubjects
   if (teacherSunil && subjectCMath) {
