@@ -107,8 +107,8 @@ export class FinanceService {
           originalFee,
           feeCategoryApplied: student.feeCategory,
           finalAmountDue,
-          status: isZeroAttendance
-            ? InvoiceStatus.UNPAID
+          status: isZeroAttendance || finalAmountDue === 0
+            ? InvoiceStatus.PAID
             : InvoiceStatus.UNPAID,
           attendancePercentage: attStats.percentage,
           isZeroAttendanceOverride: false,
@@ -287,8 +287,13 @@ export class FinanceService {
 
         const accumulatedPaid =
           (Number(previousPayments._sum.amountPaid) || 0) + dto.amountPaid;
+        const isZeroAttendance = Number(invoice.attendancePercentage) === 0;
+        const isZeroAmountDue = Number(invoice.finalAmountDue) === 0;
+
         const newStatus =
-          accumulatedPaid >= Number(invoice.finalAmountDue)
+          accumulatedPaid >= Number(invoice.finalAmountDue) ||
+          isZeroAttendance ||
+          isZeroAmountDue
             ? InvoiceStatus.PAID
             : InvoiceStatus.PARTIALLY_PAID;
 
@@ -334,8 +339,13 @@ export class FinanceService {
 
           const accumulatedPaid =
             (Number(previousPayments._sum.amountPaid) || 0) + dto.amountPaid;
+          const isZeroAttendance = Number(unpaidInvoice.attendancePercentage) === 0;
+          const isZeroAmountDue = Number(unpaidInvoice.finalAmountDue) === 0;
+
           const newStatus =
-            accumulatedPaid >= Number(unpaidInvoice.finalAmountDue)
+            accumulatedPaid >= Number(unpaidInvoice.finalAmountDue) ||
+            isZeroAttendance ||
+            isZeroAmountDue
               ? InvoiceStatus.PAID
               : InvoiceStatus.PARTIALLY_PAID;
 
@@ -505,6 +515,18 @@ export class FinanceService {
   }
 
   async getInvoices(month?: number, year?: number, status?: InvoiceStatus) {
+    // Auto-heal any existing 0% attendance or 0-due invoices currently marked PARTIALLY_PAID
+    await this.prisma.monthlyInvoice.updateMany({
+      where: {
+        status: InvoiceStatus.PARTIALLY_PAID,
+        OR: [
+          { attendancePercentage: 0 },
+          { finalAmountDue: 0 },
+        ],
+      },
+      data: { status: InvoiceStatus.PAID },
+    });
+
     const where: any = {};
     if (month) where.billingMonth = month;
     if (year) where.billingYear = year;

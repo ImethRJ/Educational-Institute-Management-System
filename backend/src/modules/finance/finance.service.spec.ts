@@ -132,5 +132,44 @@ describe('FinanceService', () => {
         }),
       });
     });
+
+    it('should transition invoice to PAID when student has 0% attendance and 0 LKR is settled', async () => {
+      const mockInvoice = {
+        id: 'inv-absent-123',
+        finalAmountDue: 2000,
+        attendancePercentage: 0.0,
+        status: InvoiceStatus.UNPAID,
+        batchClass: {
+          teacherId: 'teacher-1',
+          subjectId: 'subject-1',
+          teacher: { defaultTuitionCommissionPct: 70 },
+        },
+      };
+
+      prismaService.monthlyInvoice.findUnique.mockResolvedValue(mockInvoice);
+      prismaService.teacherSubject.findUnique.mockResolvedValue(null);
+      prismaService.paymentRecord.aggregate.mockResolvedValue({
+        _sum: { amountPaid: 0 },
+      });
+      prismaService.paymentRecord.create.mockResolvedValue({
+        id: 'payment-absent',
+        receiptNumber: 'RCP-202607-ZERO1',
+      });
+
+      await service.recordPayment(
+        {
+          studentId: 'student-absent',
+          invoiceId: 'inv-absent-123',
+          amountPaid: 0,
+          paymentMethod: 'CASH' as any,
+        },
+        'admin-1',
+      );
+
+      expect(prismaService.monthlyInvoice.update).toHaveBeenCalledWith({
+        where: { id: 'inv-absent-123' },
+        data: { status: InvoiceStatus.PAID },
+      });
+    });
   });
 });
