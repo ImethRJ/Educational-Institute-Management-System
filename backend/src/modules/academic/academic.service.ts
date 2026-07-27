@@ -38,7 +38,9 @@ export class AcademicService {
   async deleteGrade(id: string) {
     const subjectsCount = await this.prisma.subject.count({ where: { gradeLevelId: id } });
     if (subjectsCount > 0) {
-      throw new BadRequestException(`Cannot delete grade level with ${subjectsCount} linked subjects.`);
+      throw new BadRequestException(
+        `This grade level is locked because there are ${subjectsCount} subject(s) assigned to it.`,
+      );
     }
     return this.prisma.gradeLevel.delete({ where: { id } });
   }
@@ -98,7 +100,9 @@ export class AcademicService {
   async deleteSubject(id: string) {
     const batchesCount = await this.prisma.batchClass.count({ where: { subjectId: id } });
     if (batchesCount > 0) {
-      throw new BadRequestException(`Cannot delete subject linked to ${batchesCount} batch classes.`);
+      throw new BadRequestException(
+        `This subject is locked because there ${batchesCount === 1 ? 'is 1 active batch class' : `are ${batchesCount} active batch classes`} linked to it. Please reassign or delete the batch classes first.`,
+      );
     }
     return this.prisma.subject.delete({ where: { id } });
   }
@@ -208,7 +212,7 @@ export class AcademicService {
     });
     if (activeEnrollments > 0) {
       throw new BadRequestException(
-        `Cannot delete batch class with ${activeEnrollments} actively enrolled students. Unenroll students first or archive.`,
+        `This batch class is locked because there ${activeEnrollments === 1 ? 'is 1 actively enrolled student' : `are ${activeEnrollments} actively enrolled students`}. Unenroll students first before deleting.`,
       );
     }
 
