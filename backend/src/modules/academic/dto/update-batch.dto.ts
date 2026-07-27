@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, IsUUID, Min, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsUUID, Min, IsArray, ValidateIf } from 'class-validator';
 
 export class UpdateBatchDto {
   @ApiPropertyOptional({ example: '2026 A/L Combined Maths Revision', description: 'Batch class name' })
@@ -38,4 +38,10 @@ export class UpdateBatchDto {
   @IsOptional()
   @IsUUID('4')
   subjectId?: string;
+
+  @ApiPropertyOptional({ example: ['uuid-1', 'uuid-2'], description: 'Multiple Target Grade Level IDs' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  gradeLevelIds?: string[];
 }

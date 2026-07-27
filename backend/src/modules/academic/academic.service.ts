@@ -70,18 +70,42 @@ export class AcademicService {
       throw new ConflictException(`Subject with code ${dto.code} already exists.`);
     }
 
-    const data: any = { ...dto };
-    if (!data.gradeLevelId) data.gradeLevelId = null;
+    const { gradeLevelIds, ...rest } = dto;
+    const data: any = { ...rest };
+    if (!data.gradeLevelId && gradeLevelIds && gradeLevelIds.length > 0) {
+      data.gradeLevelId = gradeLevelIds[0];
+    } else if (!data.gradeLevelId) {
+      data.gradeLevelId = null;
+    }
 
-    return this.prisma.subject.create({ data });
+    if (gradeLevelIds && gradeLevelIds.length > 0) {
+      data.subjectGradeLevels = {
+        create: gradeLevelIds.map((gId) => ({ gradeLevelId: gId })),
+      };
+    }
+
+    return this.prisma.subject.create({
+      data,
+      include: { gradeLevel: true, subjectGradeLevels: { include: { gradeLevel: true } } },
+    });
   }
 
   async getAllSubjects(gradeLevelId?: string) {
-    const where = gradeLevelId ? { gradeLevelId } : {};
+    const where = gradeLevelId
+      ? {
+          OR: [
+            { gradeLevelId },
+            { subjectGradeLevels: { some: { gradeLevelId } } },
+          ],
+        }
+      : {};
     return this.prisma.subject.findMany({
       where,
       orderBy: { name: 'asc' },
-      include: { gradeLevel: true },
+      include: {
+        gradeLevel: true,
+        subjectGradeLevels: { include: { gradeLevel: true } },
+      },
     });
   }
 
@@ -89,12 +113,32 @@ export class AcademicService {
     const subject = await this.prisma.subject.findUnique({ where: { id } });
     if (!subject) throw new NotFoundException(`Subject with ID ${id} not found.`);
 
-    const data: any = { ...dto };
+    const { gradeLevelIds, ...rest } = dto;
+    const data: any = { ...rest };
     if (data.gradeLevelId === '' || data.gradeLevelId === null) {
       data.gradeLevelId = null;
     }
 
-    return this.prisma.subject.update({ where: { id }, data });
+    if (gradeLevelIds !== undefined) {
+      await this.prisma.subjectGradeLevel.deleteMany({ where: { subjectId: id } });
+      if (gradeLevelIds && gradeLevelIds.length > 0) {
+        data.subjectGradeLevels = {
+          create: gradeLevelIds.map((gId: string) => ({ gradeLevelId: gId })),
+        };
+        if (!data.gradeLevelId) {
+          data.gradeLevelId = gradeLevelIds[0];
+        }
+      }
+    }
+
+    return this.prisma.subject.update({
+      where: { id },
+      data,
+      include: {
+        gradeLevel: true,
+        subjectGradeLevels: { include: { gradeLevel: true } },
+      },
+    });
   }
 
   async deleteSubject(id: string) {
@@ -109,14 +153,26 @@ export class AcademicService {
 
   // Batches
   async createBatch(dto: CreateBatchDto, adminId: string) {
-    const data: any = { ...dto };
-    if (!data.gradeLevelId) data.gradeLevelId = null;
+    const { gradeLevelIds, ...rest } = dto;
+    const data: any = { ...rest };
+    if (!data.gradeLevelId && gradeLevelIds && gradeLevelIds.length > 0) {
+      data.gradeLevelId = gradeLevelIds[0];
+    } else if (!data.gradeLevelId) {
+      data.gradeLevelId = null;
+    }
+
+    if (gradeLevelIds && gradeLevelIds.length > 0) {
+      data.batchClassGradeLevels = {
+        create: gradeLevelIds.map((gId) => ({ gradeLevelId: gId })),
+      };
+    }
 
     const batch = await this.prisma.batchClass.create({
       data,
       include: {
         subject: true,
         gradeLevel: true,
+        batchClassGradeLevels: { include: { gradeLevel: true } },
         teacher: { select: { id: true, fullName: true, teacherCode: true } },
         branch: true,
       },
@@ -146,6 +202,7 @@ export class AcademicService {
       include: {
         subject: { select: { id: true, name: true, code: true } },
         gradeLevel: { select: { id: true, name: true, numericOrder: true } },
+        batchClassGradeLevels: { include: { gradeLevel: true } },
         teacher: { select: { id: true, fullName: true, teacherCode: true } },
         branch: { select: { name: true } },
         classSchedules: true,
@@ -160,6 +217,7 @@ export class AcademicService {
       include: {
         subject: true,
         gradeLevel: true,
+        batchClassGradeLevels: { include: { gradeLevel: true } },
         teacher: true,
         branch: true,
         academicYear: true,
@@ -178,9 +236,22 @@ export class AcademicService {
 
   async updateBatch(id: string, dto: any, adminId: string) {
     await this.getBatchById(id);
-    const data: any = { ...dto };
+    const { gradeLevelIds, ...rest } = dto;
+    const data: any = { ...rest };
     if (data.gradeLevelId === '' || data.gradeLevelId === null) {
       data.gradeLevelId = null;
+    }
+
+    if (gradeLevelIds !== undefined) {
+      await this.prisma.batchClassGradeLevel.deleteMany({ where: { batchClassId: id } });
+      if (gradeLevelIds && gradeLevelIds.length > 0) {
+        data.batchClassGradeLevels = {
+          create: gradeLevelIds.map((gId: string) => ({ gradeLevelId: gId })),
+        };
+        if (!data.gradeLevelId) {
+          data.gradeLevelId = gradeLevelIds[0];
+        }
+      }
     }
 
     const updated = await this.prisma.batchClass.update({
@@ -189,6 +260,7 @@ export class AcademicService {
       include: {
         subject: true,
         gradeLevel: true,
+        batchClassGradeLevels: { include: { gradeLevel: true } },
         teacher: { select: { id: true, fullName: true, teacherCode: true } },
       },
     });

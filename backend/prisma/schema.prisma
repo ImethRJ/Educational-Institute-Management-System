@@ -149,8 +149,10 @@ model GradeLevel {
   numericOrder  Int           @map("numeric_order")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
 
-  subjects      Subject[]
-  batchClasses  BatchClass[]
+  subjects              Subject[]
+  batchClasses          BatchClass[]
+  subjectGradeLevels    SubjectGradeLevel[]
+  batchClassGradeLevels BatchClassGradeLevel[]
 
   @@map("grade_level")
 }
@@ -167,8 +169,21 @@ model Subject {
   gradeLevel         GradeLevel?     @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
   teacherSubjects    TeacherSubject[]
   batchClasses       BatchClass[]
+  subjectGradeLevels SubjectGradeLevel[]
 
   @@map("subject")
+}
+
+model SubjectGradeLevel {
+  id           String     @id @default(uuid()) @db.Uuid
+  subjectId    String     @map("subject_id") @db.Uuid
+  gradeLevelId String     @map("grade_level_id") @db.Uuid
+
+  subject      Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  gradeLevel   GradeLevel @relation(fields: [gradeLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, gradeLevelId])
+  @@map("subject_grade_level")
 }
 
 // 3. Teacher Management
@@ -230,11 +245,12 @@ model BatchClass {
   hallNumber       String?           @map("hall_number") @db.VarChar(50)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
 
-  branch           Branch            @relation(fields: [branchId], references: [id])
-  academicYear     AcademicYear      @relation(fields: [academicYearId], references: [id])
-  gradeLevel       GradeLevel?       @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
-  subject          Subject           @relation(fields: [subjectId], references: [id])
-  teacher          Teacher           @relation(fields: [teacherId], references: [id])
+  branch                Branch                 @relation(fields: [branchId], references: [id])
+  academicYear          AcademicYear           @relation(fields: [academicYearId], references: [id])
+  gradeLevel            GradeLevel?            @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
+  subject               Subject                @relation(fields: [subjectId], references: [id])
+  teacher               Teacher                @relation(fields: [teacherId], references: [id])
+  batchClassGradeLevels BatchClassGradeLevel[]
 
   classSchedules   ClassSchedule[]
   classSessions    ClassSession[]
@@ -243,6 +259,18 @@ model BatchClass {
   invoices         MonthlyInvoice[]
 
   @@map("batch_class")
+}
+
+model BatchClassGradeLevel {
+  id           String     @id @default(uuid()) @db.Uuid
+  batchClassId String     @map("batch_class_id") @db.Uuid
+  gradeLevelId String     @map("grade_level_id") @db.Uuid
+
+  batchClass   BatchClass @relation(fields: [batchClassId], references: [id], onDelete: Cascade)
+  gradeLevel   GradeLevel @relation(fields: [gradeLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([batchClassId, gradeLevelId])
+  @@map("batch_class_grade_level")
 }
 
 model ClassSchedule {

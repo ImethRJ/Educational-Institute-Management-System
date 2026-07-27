@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { Subject, GradeLevel } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
 import { toast } from 'sonner';
 import { X, BookOpen, Loader2 } from 'lucide-react';
@@ -24,7 +25,7 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [gradeLevelId, setGradeLevelId] = useState('');
+  const [selectedGradeIds, setSelectedGradeIds] = useState<string[]>([]);
   const [standardMonthlyFee, setStandardMonthlyFee] = useState<number>(3500);
 
   // Fetch Grade Levels for selection
@@ -41,12 +42,17 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
     if (subject) {
       setCode(subject.code || '');
       setName(subject.name || '');
-      setGradeLevelId(subject.gradeLevelId || '');
       setStandardMonthlyFee(Number(subject.standardMonthlyFee) || 3500);
+
+      const ids = subject.subjectGradeLevels?.map((s) => s.gradeLevel.id) || [];
+      if (ids.length === 0 && subject.gradeLevelId) {
+        ids.push(subject.gradeLevelId);
+      }
+      setSelectedGradeIds(ids);
     } else {
       setCode('');
       setName('');
-      setGradeLevelId('');
+      setSelectedGradeIds([]);
       setStandardMonthlyFee(3500);
     }
   }, [subject, isOpen]);
@@ -72,12 +78,24 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
 
   if (!isOpen) return null;
 
+  const toggleGrade = (id: string) => {
+    setSelectedGradeIds((prev) =>
+      prev.includes(id) ? prev.filter((gId) => gId !== id) : [...prev, id],
+    );
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const values = Array.from(e.target.selectedOptions, (option) => option.value);
+    setSelectedGradeIds(values);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     mutation.mutate({
       code,
       name,
-      gradeLevelId: gradeLevelId || null,
+      gradeLevelIds: selectedGradeIds,
+      gradeLevelId: selectedGradeIds[0] || null,
       standardMonthlyFee: Number(standardMonthlyFee),
     });
   };
@@ -99,29 +117,58 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4 pt-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold">Target Grade Level (Optional)</label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold">Target Grade Levels (Multi-select holding Ctrl/Cmd)</label>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {selectedGradeIds.length === 0
+                    ? 'Open Catalog (All Grades)'
+                    : `${selectedGradeIds.length} Grade(s) Selected`}
+                </span>
+              </div>
+
+              {/* Multi-select select box */}
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
-                value={gradeLevelId}
-                onChange={(e) => setGradeLevelId(e.target.value)}
+                multiple
+                size={4}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans"
+                value={selectedGradeIds}
+                onChange={handleSelectChange}
               >
-                <option value="">-- Open Subject (All Grades) --</option>
                 {grades.map((g) => (
-                  <option key={g.id} value={g.id}>
+                  <option key={g.id} value={g.id} className="py-0.5">
                     {g.name}
                   </option>
                 ))}
               </select>
+
+              {/* Interactive Grade Pill Toggles */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {grades.map((g) => {
+                  const isSelected = selectedGradeIds.includes(g.id);
+                  return (
+                    <Badge
+                      key={g.id}
+                      variant={isSelected ? 'default' : 'outline'}
+                      className={`cursor-pointer text-[10px] transition-colors ${
+                        isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                      }`}
+                      onClick={() => toggleGrade(g.id)}
+                    >
+                      {g.name}
+                    </Badge>
+                  );
+                })}
+              </div>
               <p className="text-[11px] text-muted-foreground">
-                Leave as "Open Subject" if taught across multiple grades (e.g. History, Maths).
+                Hold <kbd className="px-1 py-0.5 text-[10px] bg-muted rounded border">Ctrl</kbd> / <kbd className="px-1 py-0.5 text-[10px] bg-muted rounded border">Cmd</kbd> to select multiple grades or click grade pills above.
               </p>
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold">Subject Code *</label>
               <Input
-                placeholder="e.g. CMATH-A/L, ENG-G11"
+                placeholder="e.g. HIST, MATH, ENG"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 required
@@ -131,7 +178,7 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
             <div className="space-y-1">
               <label className="text-xs font-semibold">Subject Full Name *</label>
               <Input
-                placeholder="e.g. Combined Mathematics (A/L)"
+                placeholder="e.g. History, Mathematics, English"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required

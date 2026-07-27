@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { BatchClass, Subject, Teacher, GradeLevel } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Badge } from '../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
 import { toast } from 'sonner';
 import { X, Users, Loader2 } from 'lucide-react';
@@ -24,7 +25,7 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
   const [branchId, setBranchId] = useState('');
   const [academicYearId, setAcademicYearId] = useState('');
-  const [gradeLevelId, setGradeLevelId] = useState('');
+  const [selectedGradeIds, setSelectedGradeIds] = useState<string[]>([]);
   const [subjectId, setSubjectId] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [batchName, setBatchName] = useState('');
@@ -76,14 +77,19 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       setBatchName(batch.batchName || '');
       setMonthlyFee(Number(batch.monthlyFee) || 3500);
       setHallNumber(batch.hallNumber || 'Hall A');
-      setGradeLevelId(batch.gradeLevelId || batch.gradeLevel?.id || '');
       setSubjectId(batch.subject?.id || '');
       setTeacherId(batch.teacher?.id || '');
+
+      const ids = batch.batchClassGradeLevels?.map((b) => b.gradeLevel.id) || [];
+      if (ids.length === 0 && batch.gradeLevelId) {
+        ids.push(batch.gradeLevelId);
+      }
+      setSelectedGradeIds(ids);
     } else {
       setBatchName('');
       setMonthlyFee(3500);
       setHallNumber('Hall A');
-      setGradeLevelId('');
+      setSelectedGradeIds([]);
       setSubjectId('');
       setTeacherId('');
     }
@@ -96,6 +102,17 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       if (years.length > 0 && !academicYearId) setAcademicYearId(years[0].id);
     }
   }, [branches, years, isOpen, isEditing, branchId, academicYearId]);
+
+  const toggleGrade = (id: string) => {
+    setSelectedGradeIds((prev) =>
+      prev.includes(id) ? prev.filter((gId) => gId !== id) : [...prev, id],
+    );
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const values = Array.from(e.target.selectedOptions, (option) => option.value);
+    setSelectedGradeIds(values);
+  };
 
   const mutation = useMutation({
     mutationFn: (payload: any) =>
@@ -122,7 +139,8 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       hallNumber,
       subjectId,
       teacherId,
-      gradeLevelId: gradeLevelId || undefined,
+      gradeLevelIds: selectedGradeIds,
+      gradeLevelId: selectedGradeIds[0] || null,
     };
     if (!isEditing) {
       payload.branchId = branchId || branches[0]?.id;
@@ -204,22 +222,6 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold">Target Grade Level</label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
-                  value={gradeLevelId}
-                  onChange={(e) => setGradeLevelId(e.target.value)}
-                >
-                  <option value="">-- General / All Grades --</option>
-                  {grades.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
                 <label className="text-xs font-semibold">Assigned Teacher *</label>
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
@@ -237,10 +239,54 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
               </div>
             </div>
 
+            {/* Target Grade Levels Multi-select */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold">Target Grade Levels (Multi-select holding Ctrl/Cmd)</label>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {selectedGradeIds.length === 0
+                    ? 'General / All Grades'
+                    : `${selectedGradeIds.length} Grade(s) Selected`}
+                </span>
+              </div>
+
+              <select
+                multiple
+                size={4}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm font-sans"
+                value={selectedGradeIds}
+                onChange={handleSelectChange}
+              >
+                {grades.map((g) => (
+                  <option key={g.id} value={g.id} className="py-0.5">
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {grades.map((g) => {
+                  const isSelected = selectedGradeIds.includes(g.id);
+                  return (
+                    <Badge
+                      key={g.id}
+                      variant={isSelected ? 'default' : 'outline'}
+                      className={`cursor-pointer text-[10px] transition-colors ${
+                        isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                      }`}
+                      onClick={() => toggleGrade(g.id)}
+                    >
+                      {g.name}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="space-y-1">
               <label className="text-xs font-semibold">Batch Class Name *</label>
               <Input
-                placeholder="e.g. 2026 Grade 11 History - Batch A"
+                placeholder="e.g. 2026 Grade 10 & 11 History - Batch A"
                 value={batchName}
                 onChange={(e) => setBatchName(e.target.value)}
                 required

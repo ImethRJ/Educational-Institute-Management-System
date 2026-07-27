@@ -341,7 +341,19 @@ export const TimetablePage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-xs font-semibold">{sub.name}</TableCell>
                       <TableCell className="text-xs">
-                        <Badge variant="outline">{sub.gradeLevel?.name || 'Open Catalog'}</Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {sub.subjectGradeLevels && sub.subjectGradeLevels.length > 0 ? (
+                            sub.subjectGradeLevels.map((sgl) => (
+                              <Badge key={sgl.gradeLevel.id} variant="outline" className="text-[10px]">
+                                {sgl.gradeLevel.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">
+                              {sub.gradeLevel?.name || 'Open Catalog'}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs font-bold text-emerald-600">
                         LKR {Number(sub.standardMonthlyFee || 0).toLocaleString()}
@@ -395,7 +407,7 @@ export const TimetablePage: React.FC = () => {
                   <TableHead>Batch Class Name</TableHead>
                   <TableHead>Assigned Teacher</TableHead>
                   <TableHead>Open Subject</TableHead>
-                  <TableHead>Target Grade</TableHead>
+                  <TableHead>Target Grade(s)</TableHead>
                   <TableHead>Monthly Fee</TableHead>
                   <TableHead>Hall Number</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -417,9 +429,19 @@ export const TimetablePage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-xs font-mono">{b.subject?.name || 'Subject'}</TableCell>
                       <TableCell className="text-xs">
-                        <Badge variant="secondary" className="text-[10px] font-semibold">
-                          {b.gradeLevel?.name || 'General'}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {b.batchClassGradeLevels && b.batchClassGradeLevels.length > 0 ? (
+                            b.batchClassGradeLevels.map((bcgl) => (
+                              <Badge key={bcgl.gradeLevel.id} variant="secondary" className="text-[10px]">
+                                {bcgl.gradeLevel.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {b.gradeLevel?.name || 'General'}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs font-bold text-emerald-600">
                         LKR {Number(b.monthlyFee || 0).toLocaleString()}
