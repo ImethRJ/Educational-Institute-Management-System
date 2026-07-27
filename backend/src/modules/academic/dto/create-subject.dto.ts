@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID, IsNumber, Min, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsNumber, Min, IsOptional, ValidateIf } from 'class-validator';
 
 export class CreateSubjectDto {
   @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Optional grade level ID' })
+  @ValidateIf((o, val) => val !== null && val !== undefined && val !== '')
   @IsOptional()
   @IsUUID('4', { message: 'Invalid grade level UUID.' })
-  gradeLevelId?: string;
+  gradeLevelId?: string | null;
 
   @ApiProperty({ example: 'ALG-13', description: 'Unique subject code' })
   @IsNotEmpty({ message: 'Subject code is required.' })

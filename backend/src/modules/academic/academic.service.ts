@@ -68,7 +68,10 @@ export class AcademicService {
       throw new ConflictException(`Subject with code ${dto.code} already exists.`);
     }
 
-    return this.prisma.subject.create({ data: dto });
+    const data: any = { ...dto };
+    if (!data.gradeLevelId) data.gradeLevelId = null;
+
+    return this.prisma.subject.create({ data });
   }
 
   async getAllSubjects(gradeLevelId?: string) {
@@ -83,7 +86,13 @@ export class AcademicService {
   async updateSubject(id: string, dto: any) {
     const subject = await this.prisma.subject.findUnique({ where: { id } });
     if (!subject) throw new NotFoundException(`Subject with ID ${id} not found.`);
-    return this.prisma.subject.update({ where: { id }, data: dto });
+
+    const data: any = { ...dto };
+    if (data.gradeLevelId === '' || data.gradeLevelId === null) {
+      data.gradeLevelId = null;
+    }
+
+    return this.prisma.subject.update({ where: { id }, data });
   }
 
   async deleteSubject(id: string) {
@@ -96,8 +105,11 @@ export class AcademicService {
 
   // Batches
   async createBatch(dto: CreateBatchDto, adminId: string) {
+    const data: any = { ...dto };
+    if (!data.gradeLevelId) data.gradeLevelId = null;
+
     const batch = await this.prisma.batchClass.create({
-      data: dto,
+      data,
       include: {
         subject: true,
         gradeLevel: true,
@@ -162,9 +174,14 @@ export class AcademicService {
 
   async updateBatch(id: string, dto: any, adminId: string) {
     await this.getBatchById(id);
+    const data: any = { ...dto };
+    if (data.gradeLevelId === '' || data.gradeLevelId === null) {
+      data.gradeLevelId = null;
+    }
+
     const updated = await this.prisma.batchClass.update({
       where: { id },
-      data: dto,
+      data,
       include: {
         subject: true,
         gradeLevel: true,

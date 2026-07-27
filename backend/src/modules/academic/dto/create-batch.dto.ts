@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID, IsNumber, Min, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsNumber, Min, IsOptional, ValidateIf } from 'class-validator';
 
 export class CreateBatchDto {
   @ApiProperty({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Branch ID' })
@@ -13,9 +13,10 @@ export class CreateBatchDto {
   academicYearId: string;
 
   @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Target Grade Level ID' })
+  @ValidateIf((o, val) => val !== null && val !== undefined && val !== '')
   @IsOptional()
   @IsUUID('4', { message: 'Invalid grade level UUID.' })
-  gradeLevelId?: string;
+  gradeLevelId?: string | null;
 
   @ApiProperty({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Subject ID' })
   @IsNotEmpty({ message: 'Subject ID is required.' })

@@ -77,7 +77,7 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
     mutation.mutate({
       code,
       name,
-      gradeLevelId,
+      gradeLevelId: gradeLevelId || null,
       standardMonthlyFee: Number(standardMonthlyFee),
     });
   };
