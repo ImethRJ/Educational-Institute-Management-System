@@ -29,6 +29,7 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<Gender>('MALE');
   const [dob, setDob] = useState('1990-01-01');
+  const [joiningDate, setJoiningDate] = useState('2026-01-01');
   const [qualifications, setQualifications] = useState('');
   const [defaultTuitionCommissionPct, setDefaultTuitionCommissionPct] = useState<number>(75);
   const [admissionCommissionType, setAdmissionCommissionType] = useState<CommissionType>('PERCENTAGE');
@@ -54,6 +55,7 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       setEmail(teacher.email || '');
       setGender(teacher.gender || 'MALE');
       setDob(teacher.dob ? new Date(teacher.dob).toISOString().split('T')[0] : '1990-01-01');
+      setJoiningDate(teacher.joiningDate ? new Date(teacher.joiningDate).toISOString().split('T')[0] : '2026-01-01');
       setQualifications(teacher.qualifications || '');
       setDefaultTuitionCommissionPct(Number(teacher.defaultTuitionCommissionPct) || 75);
       setAdmissionCommissionType(teacher.admissionCommissionType || 'PERCENTAGE');
@@ -69,6 +71,7 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       setEmail('');
       setGender('MALE');
       setDob('1990-01-01');
+      setJoiningDate('2026-01-01');
       setQualifications('');
       setDefaultTuitionCommissionPct(75);
       setAdmissionCommissionType('PERCENTAGE');
@@ -90,9 +93,22 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['dashboard-kpi-summary'] });
       onClose();
     },
+    onError: (err: any) => {
+      const serverMsg = err?.response?.data?.message;
+      const msg = Array.isArray(serverMsg)
+        ? serverMsg.join(', ')
+        : serverMsg || 'Failed to save teacher details.';
+      toast.error(msg);
+    },
   });
 
   if (!isOpen) return null;
+
+  const toggleSubject = (id: string) => {
+    setSelectedSubjectIds((prev) =>
+      prev.includes(id) ? prev.filter((sId) => sId !== id) : [...prev, id],
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +119,7 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
       email: email || undefined,
       gender,
       dob,
+      joiningDate: joiningDate || '2026-01-01',
       qualifications: qualifications || undefined,
       defaultTuitionCommissionPct: Number(defaultTuitionCommissionPct),
       admissionCommissionType,
@@ -139,9 +156,9 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
               </div>
             )}
 
-            {/* Personal Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2 space-y-1">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
                 <label className="text-xs font-semibold">Teacher Full Name *</label>
                 <Input
                   placeholder="e.g. Prof. Sunil Shantha"
@@ -194,6 +211,16 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
                 </select>
               </div>
 
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">Date of Joining *</label>
+                <Input
+                  type="date"
+                  value={joiningDate}
+                  onChange={(e) => setJoiningDate(e.target.value)}
+                  required
+                />
+              </div>
+
               <div className="sm:col-span-2 space-y-1">
                 <label className="text-xs font-semibold">Academic Qualifications</label>
                 <Input
@@ -218,75 +245,68 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
                       <label
                         key={sub.id}
                         className={`flex items-center space-x-2 text-xs p-1.5 rounded cursor-pointer transition-colors ${
-                          isSelected ? 'bg-primary/10 border border-primary/40 font-semibold' : 'hover:bg-muted'
+                          isSelected ? 'bg-primary/10 border border-primary/30 font-semibold' : 'hover:bg-accent'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedSubjectIds([...selectedSubjectIds, sub.id]);
-                            } else {
-                              setSelectedSubjectIds(selectedSubjectIds.filter((id) => id !== sub.id));
-                            }
-                          }}
-                          className="rounded text-primary focus:ring-primary h-3.5 w-3.5"
+                          onChange={() => toggleSubject(sub.id)}
+                          className="rounded border-input text-primary focus:ring-primary"
                         />
-                        <div className="truncate">
-                          <span>{sub.name}</span>
-                          <span className="text-[10px] text-muted-foreground ml-1">({sub.code})</span>
-                        </div>
+                        <span>
+                          {sub.name} <span className="text-muted-foreground font-mono text-[10px]">({sub.code})</span>
+                        </span>
                       </label>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Commission Rules Configuration */}
-            <div className="space-y-3 pt-3 border-t border-border">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Tuition & Admission Commission Rules
-              </h3>
+              {/* Commission Rule Configuration */}
+              <div className="sm:col-span-2 space-y-3 pt-2 border-t border-border">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Tuition & Admission Commission Rules
+                </span>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1 sm:col-span-2">
+                <div className="space-y-1">
                   <label className="text-xs font-semibold">Default Monthly Tuition Fee Commission (%) *</label>
                   <Input
                     type="number"
                     min="0"
                     max="100"
-                    step="0.5"
                     value={defaultTuitionCommissionPct}
                     onChange={(e) => setDefaultTuitionCommissionPct(Number(e.target.value))}
                     required
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Teacher receives {defaultTuitionCommissionPct}% of collected student tuition. Institute retains {(100 - defaultTuitionCommissionPct).toFixed(1)}%.
+                    Teacher receives {defaultTuitionCommissionPct}% of collected student tuition. Institute retains{' '}
+                    {Math.max(0, 100 - defaultTuitionCommissionPct)}%.
                   </p>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold">Admission Commission Type</label>
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
-                    value={admissionCommissionType}
-                    onChange={(e) => setAdmissionCommissionType(e.target.value as CommissionType)}
-                  >
-                    <option value="PERCENTAGE">Percentage (%)</option>
-                    <option value="FIXED_AMOUNT">Fixed Amount (LKR)</option>
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">Admission Commission Type</label>
+                    <select
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
+                      value={admissionCommissionType}
+                      onChange={(e) => setAdmissionCommissionType(e.target.value as CommissionType)}
+                    >
+                      <option value="PERCENTAGE">Percentage (%)</option>
+                      <option value="FIXED_AMOUNT">Fixed Amount (LKR)</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold">Admission Commission Value</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={admissionCommissionValue}
-                    onChange={(e) => setAdmissionCommissionValue(Number(e.target.value))}
-                  />
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">Admission Commission Value</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={admissionCommissionValue}
+                      onChange={(e) => setAdmissionCommissionValue(Number(e.target.value))}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -296,17 +316,13 @@ export const TeacherFormModal: React.FC<TeacherFormModalProps> = ({
             <Button variant="outline" type="button" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={mutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
-            >
+            <Button type="submit" disabled={mutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs">
               {mutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving Teacher...
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...
                 </>
               ) : isEditing ? (
-                'Update Teacher Profile'
+                'Update Teacher Details'
               ) : (
                 'Complete Teacher Registration'
               )}

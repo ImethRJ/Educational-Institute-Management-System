@@ -53,10 +53,10 @@ export class CreateTeacherDto {
   @IsString()
   emergencyContact?: string;
 
-  @ApiProperty({ example: '2026-01-01', description: 'Joining date (YYYY-MM-DD)' })
-  @IsNotEmpty({ message: 'Joining date is required.' })
+  @ApiPropertyOptional({ example: '2026-01-01', description: 'Joining date (YYYY-MM-DD)' })
+  @IsOptional()
   @IsDateString({}, { message: 'Invalid date format for joining date.' })
-  joiningDate: string;
+  joiningDate?: string;
 
   @ApiPropertyOptional({ example: 'B.Sc. (Hons) Mathematics, Ph.D.', description: 'Qualifications & Experience' })
   @IsOptional()

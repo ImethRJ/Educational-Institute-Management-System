@@ -44,7 +44,7 @@ export class TeacherService {
           email: dto.email,
           address: dto.address,
           emergencyContact: dto.emergencyContact,
-          joiningDate: new Date(dto.joiningDate),
+          joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
           qualifications: dto.qualifications,
           photoUrl: dto.photoUrl,
           defaultTuitionCommissionPct: dto.defaultTuitionCommissionPct,
