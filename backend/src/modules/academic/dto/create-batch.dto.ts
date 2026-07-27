@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsNotEmpty,
   IsString,
-  IsUUID,
+  Matches,
   IsNumber,
   Min,
   IsOptional,
@@ -10,13 +10,15 @@ import {
   ValidateIf,
 } from "class-validator";
 
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 export class CreateBatchDto {
   @ApiProperty({
     example: "c39a82e1-4567-4b12-8901-23456789abcd",
     description: "Branch ID",
   })
   @IsNotEmpty({ message: "Branch ID is required." })
-  @IsUUID(undefined, { message: "Invalid branch UUID." })
+  @Matches(UUID_REGEX, { message: "Invalid branch UUID." })
   branchId: string;
 
   @ApiProperty({
@@ -24,7 +26,7 @@ export class CreateBatchDto {
     description: "Academic Year ID",
   })
   @IsNotEmpty({ message: "Academic Year ID is required." })
-  @IsUUID(undefined, { message: "Invalid academic year UUID." })
+  @Matches(UUID_REGEX, { message: "Invalid academic year UUID." })
   academicYearId: string;
 
   @ApiPropertyOptional({
@@ -33,7 +35,7 @@ export class CreateBatchDto {
   })
   @ValidateIf((o, val) => val !== null && val !== undefined && val !== "")
   @IsOptional()
-  @IsUUID(undefined, { message: "Invalid grade level UUID." })
+  @Matches(UUID_REGEX, { message: "Invalid grade level UUID." })
   gradeLevelId?: string | null;
 
   @ApiPropertyOptional({
@@ -42,7 +44,7 @@ export class CreateBatchDto {
   })
   @IsOptional()
   @IsArray()
-  @IsUUID(undefined, { each: true, message: "Invalid grade level UUID in list." })
+  @Matches(UUID_REGEX, { each: true, message: "Invalid grade level UUID in list." })
   gradeLevelIds?: string[];
 
   @ApiProperty({
@@ -50,7 +52,7 @@ export class CreateBatchDto {
     description: "Subject ID",
   })
   @IsNotEmpty({ message: "Subject ID is required." })
-  @IsUUID(undefined, { message: "Invalid subject UUID." })
+  @Matches(UUID_REGEX, { message: "Invalid subject UUID." })
   subjectId: string;
 
   @ApiProperty({
@@ -58,7 +60,7 @@ export class CreateBatchDto {
     description: "Assigned Teacher ID",
   })
   @IsNotEmpty({ message: "Teacher ID is required." })
-  @IsUUID(undefined, { message: "Invalid teacher UUID." })
+  @Matches(UUID_REGEX, { message: "Invalid teacher UUID." })
   teacherId: string;
 
   @ApiProperty({

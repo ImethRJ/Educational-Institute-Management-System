@@ -3,11 +3,13 @@ import {
   IsOptional,
   IsString,
   IsNumber,
-  IsUUID,
+  Matches,
   Min,
   IsArray,
   ValidateIf,
 } from "class-validator";
+
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export class UpdateBatchDto {
   @ApiPropertyOptional({
@@ -37,7 +39,7 @@ export class UpdateBatchDto {
     description: "Teacher ID",
   })
   @IsOptional()
-  @IsUUID("4")
+  @Matches(UUID_REGEX, { message: "Invalid teacher UUID." })
   teacherId?: string;
 
   @ApiPropertyOptional({
@@ -45,7 +47,7 @@ export class UpdateBatchDto {
     description: "Branch ID",
   })
   @IsOptional()
-  @IsUUID("4")
+  @Matches(UUID_REGEX, { message: "Invalid branch UUID." })
   branchId?: string;
 
   @ApiPropertyOptional({
@@ -54,7 +56,7 @@ export class UpdateBatchDto {
   })
   @ValidateIf((o, val) => val !== null && val !== undefined && val !== "")
   @IsOptional()
-  @IsUUID("4")
+  @Matches(UUID_REGEX, { message: "Invalid grade level UUID." })
   gradeLevelId?: string | null;
 
   @ApiPropertyOptional({
@@ -62,7 +64,7 @@ export class UpdateBatchDto {
     description: "Subject ID",
   })
   @IsOptional()
-  @IsUUID("4")
+  @Matches(UUID_REGEX, { message: "Invalid subject UUID." })
   subjectId?: string;
 
   @ApiPropertyOptional({
@@ -71,6 +73,6 @@ export class UpdateBatchDto {
   })
   @IsOptional()
   @IsArray()
-  @IsUUID("4", { each: true })
+  @Matches(UUID_REGEX, { each: true, message: "Invalid grade level UUID in list." })
   gradeLevelIds?: string[];
 }

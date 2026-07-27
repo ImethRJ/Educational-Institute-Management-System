@@ -45,12 +45,12 @@ async function main() {
 
   // 3. Seed Current Academic Year
   const currentAcademicYear = await prisma.academicYear.upsert({
-    where: { id: '00000000-0000-0000-0000-000000002026' },
+    where: { id: '00000000-0000-4000-a000-000000002026' },
     update: {
       yearName: '2026',
     },
     create: {
-      id: '00000000-0000-0000-0000-000000002026',
+      id: '00000000-0000-4000-a000-000000002026',
       yearName: '2026',
       startDate: new Date('2026-01-01'),
       endDate: new Date('2026-12-31'),
