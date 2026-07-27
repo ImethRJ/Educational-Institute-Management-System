@@ -1,34 +1,65 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { ClassSchedule, Subject, BatchClass } from '../../types';
+import { ClassSchedule, Subject, BatchClass, GradeLevel } from '../../types';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { SubjectFormModal } from './subject-form.modal';
-import { Calendar, Clock, BookOpen, Plus, Filter, Users, Banknote } from 'lucide-react';
+import { GradeFormModal } from './grade-form.modal';
+import { BatchFormModal } from './batch-form.modal';
+import { ScheduleFormModal } from './schedule-form.modal';
+import { toast } from 'sonner';
+import {
+  Calendar,
+  Clock,
+  BookOpen,
+  Plus,
+  Users,
+  Award,
+  Edit2,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
 
 export const TimetablePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'subjects' | 'batches' | 'timetable'>('subjects');
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'grades' | 'subjects' | 'batches' | 'timetable'>('subjects');
+
+  // Filter States for Timetable
   const [selectedDay, setSelectedDay] = useState<number | ''>('');
   const [selectedHall, setSelectedHall] = useState<string>('');
 
-  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  // Modal States
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [editingGrade, setEditingGrade] = useState<GradeLevel | null>(null);
 
-  // Fetch Subjects
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState<BatchClass | null>(null);
+
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<ClassSchedule | null>(null);
+
+  // Queries
+  const { data: gradesResponse, isLoading: loadingGrades } = useQuery({
+    queryKey: ['grades-list'],
+    queryFn: () => api.get('/academic/grades'),
+  });
+
   const { data: subjectsResponse, isLoading: loadingSubjects } = useQuery({
     queryKey: ['subjects-list'],
     queryFn: () => api.get('/academic/subjects'),
   });
 
-  // Fetch Batches
   const { data: batchesResponse, isLoading: loadingBatches } = useQuery({
     queryKey: ['batches-list'],
     queryFn: () => api.get('/academic/batches'),
   });
 
-  // Fetch Weekly Timetable
   const { data: timetableResponse, isLoading: loadingTimetable } = useQuery({
     queryKey: ['weekly-timetable', selectedDay, selectedHall],
     queryFn: () => {
@@ -40,6 +71,10 @@ export const TimetablePage: React.FC = () => {
     enabled: activeTab === 'timetable',
   });
 
+  // Extract Lists
+  const rawGrades = (gradesResponse as any)?.data;
+  const grades: GradeLevel[] = Array.isArray(rawGrades) ? rawGrades : rawGrades?.items || [];
+
   const rawSubjects = (subjectsResponse as any)?.data;
   const subjects: Subject[] = Array.isArray(rawSubjects) ? rawSubjects : rawSubjects?.items || [];
 
@@ -49,6 +84,75 @@ export const TimetablePage: React.FC = () => {
   const schedules: ClassSchedule[] = (timetableResponse as any)?.data || [];
   const daysMap = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+  // Delete Mutations
+  const deleteGradeMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/academic/grades/${id}`),
+    onSuccess: () => {
+      toast.success('Grade level deleted.');
+      queryClient.invalidateQueries({ queryKey: ['grades-list'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to delete grade level.');
+    },
+  });
+
+  const deleteSubjectMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/academic/subjects/${id}`),
+    onSuccess: () => {
+      toast.success('Subject deleted.');
+      queryClient.invalidateQueries({ queryKey: ['subjects-list'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to delete subject.');
+    },
+  });
+
+  const deleteBatchMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/academic/batches/${id}`),
+    onSuccess: () => {
+      toast.success('Batch class deleted.');
+      queryClient.invalidateQueries({ queryKey: ['batches-list'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to delete batch class.');
+    },
+  });
+
+  const deleteScheduleMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/academic/schedules/${id}`),
+    onSuccess: () => {
+      toast.success('Timetable schedule slot deleted.');
+      queryClient.invalidateQueries({ queryKey: ['weekly-timetable'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to delete schedule slot.');
+    },
+  });
+
+  const handleDeleteGrade = (g: GradeLevel) => {
+    if (confirm(`Are you sure you want to delete grade level "${g.name}"?`)) {
+      deleteGradeMutation.mutate(g.id);
+    }
+  };
+
+  const handleDeleteSubject = (s: Subject) => {
+    if (confirm(`Are you sure you want to delete subject "${s.name}" (${s.code})?`)) {
+      deleteSubjectMutation.mutate(s.id);
+    }
+  };
+
+  const handleDeleteBatch = (b: BatchClass) => {
+    if (confirm(`Are you sure you want to delete batch class "${b.batchName}"?`)) {
+      deleteBatchMutation.mutate(b.id);
+    }
+  };
+
+  const handleDeleteSchedule = (sch: ClassSchedule) => {
+    if (confirm('Are you sure you want to remove this timetable schedule slot?')) {
+      deleteScheduleMutation.mutate(sch.id);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Bar */}
@@ -56,21 +160,69 @@ export const TimetablePage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Academic, Subject & Timetable Management</h1>
           <p className="text-xs text-muted-foreground">
-            Manage academic subjects, monthly course fees, active batch classes, and weekly hall schedules
+            Manage grade levels, subjects, monthly course fees, active batch classes, and weekly hall schedules
           </p>
         </div>
+
+        {activeTab === 'grades' && (
+          <Button
+            onClick={() => {
+              setEditingGrade(null);
+              setIsGradeModalOpen(true);
+            }}
+            className="text-xs font-semibold bg-primary hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Add Grade Level
+          </Button>
+        )}
+
         {activeTab === 'subjects' && (
           <Button
-            onClick={() => setIsSubjectModalOpen(true)}
+            onClick={() => {
+              setEditingSubject(null);
+              setIsSubjectModalOpen(true);
+            }}
             className="text-xs font-semibold bg-primary hover:bg-primary/90"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Add New Subject
           </Button>
         )}
+
+        {activeTab === 'batches' && (
+          <Button
+            onClick={() => {
+              setEditingBatch(null);
+              setIsBatchModalOpen(true);
+            }}
+            className="text-xs font-semibold bg-primary hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Create Batch Class
+          </Button>
+        )}
+
+        {activeTab === 'timetable' && (
+          <Button
+            onClick={() => {
+              setEditingSchedule(null);
+              setIsScheduleModalOpen(true);
+            }}
+            className="text-xs font-semibold bg-primary hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Add Schedule Slot
+          </Button>
+        )}
       </div>
 
       {/* Tab Controls */}
-      <div className="flex space-x-2 border-b border-border pb-2">
+      <div className="flex flex-wrap space-x-2 border-b border-border pb-2">
+        <Button
+          variant={activeTab === 'grades' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('grades')}
+          className="text-xs font-semibold"
+        >
+          <Award className="h-4 w-4 mr-1.5" /> Grade Levels ({grades.length})
+        </Button>
         <Button
           variant={activeTab === 'subjects' ? 'default' : 'ghost'}
           size="sm"
@@ -97,6 +249,68 @@ export const TimetablePage: React.FC = () => {
         </Button>
       </div>
 
+      {/* TAB 0: GRADE LEVELS ROSTER */}
+      {activeTab === 'grades' && (
+        <Card className="border-border">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Numeric Order</TableHead>
+                  <TableHead>Grade Level Name</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingGrades ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-xs text-muted-foreground">
+                      Loading grade levels...
+                    </TableCell>
+                  </TableRow>
+                ) : grades.length > 0 ? (
+                  grades.map((g) => (
+                    <TableRow key={g.id}>
+                      <TableCell className="font-mono text-xs font-bold text-primary">
+                        #{g.numericOrder}
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold">{g.name}</TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditingGrade(g);
+                            setIsGradeModalOpen(true);
+                          }}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteGrade(g)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-xs text-muted-foreground">
+                      No grade levels found. Click "Add Grade Level" above.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* TAB 1: ACADEMIC SUBJECTS ROSTER */}
       {activeTab === 'subjects' && (
         <Card className="border-border">
@@ -109,12 +323,13 @@ export const TimetablePage: React.FC = () => {
                   <TableHead>Grade Level</TableHead>
                   <TableHead>Standard Monthly Fee</TableHead>
                   <TableHead>Created Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingSubjects ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
                       Loading subjects...
                     </TableCell>
                   </TableRow>
@@ -132,13 +347,34 @@ export const TimetablePage: React.FC = () => {
                         LKR {Number(sub.standardMonthlyFee || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {new Date(sub.createdAt).toLocaleDateString('en-LK')}
+                        {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString('en-LK') : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditingSubject(sub);
+                            setIsSubjectModalOpen(true);
+                          }}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteSubject(sub)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
                       No academic subjects registered yet. Click "Add New Subject" above.
                     </TableCell>
                   </TableRow>
@@ -161,12 +397,13 @@ export const TimetablePage: React.FC = () => {
                   <TableHead>Subject</TableHead>
                   <TableHead>Monthly Class Fee</TableHead>
                   <TableHead>Hall Number</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingBatches ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
                       Loading batch classes...
                     </TableCell>
                   </TableRow>
@@ -182,12 +419,33 @@ export const TimetablePage: React.FC = () => {
                         LKR {Number(b.monthlyFee || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{b.hallNumber || 'Main Hall'}</TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditingBatch(b);
+                            setIsBatchModalOpen(true);
+                          }}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteBatch(b)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
-                      No batch classes created yet.
+                    <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
+                      No batch classes created yet. Click "Create Batch Class" above.
                     </TableCell>
                   </TableRow>
                 )}
@@ -228,9 +486,9 @@ export const TimetablePage: React.FC = () => {
                     onChange={(e) => setSelectedHall(e.target.value)}
                   >
                     <option value="">All Halls</option>
-                    <option value="Hall A">Hall A (Main Branch)</option>
-                    <option value="Hall B">Hall B (Science Wing)</option>
-                    <option value="Hall C">Hall C (Revision Hall)</option>
+                    <option value="Hall A">Hall A</option>
+                    <option value="Hall B">Hall B</option>
+                    <option value="Hall C">Hall C</option>
                   </select>
                 </div>
               </div>
@@ -244,7 +502,7 @@ export const TimetablePage: React.FC = () => {
               </div>
             ) : schedules.length > 0 ? (
               schedules.map((sch) => (
-                <Card key={sch.id} className="border-border hover:shadow-md transition-shadow">
+                <Card key={sch.id} className="border-border hover:shadow-md transition-shadow relative">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-[10px] font-bold">
@@ -274,22 +532,78 @@ export const TimetablePage: React.FC = () => {
                         {sch.batchClass?.subject?.code}
                       </span>
                     </div>
+
+                    <div className="flex justify-end space-x-1 border-t border-border pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[11px] px-2"
+                        onClick={() => {
+                          setEditingSchedule(sch);
+                          setIsScheduleModalOpen(true);
+                        }}
+                      >
+                        <Edit2 className="h-3 w-3 mr-1" /> Edit Slot
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[11px] px-2 text-destructive"
+                        onClick={() => handleDeleteSchedule(sch)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" /> Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))
             ) : (
               <div className="col-span-full text-center py-12 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
-                No class schedule slots found matching filters.
+                No class schedule slots found matching filters. Click "Add Schedule Slot" above.
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Subject Creation Modal */}
+      {/* Grade Modal */}
+      <GradeFormModal
+        grade={editingGrade}
+        isOpen={isGradeModalOpen}
+        onClose={() => {
+          setIsGradeModalOpen(false);
+          setEditingGrade(null);
+        }}
+      />
+
+      {/* Subject Modal */}
       <SubjectFormModal
+        subject={editingSubject}
         isOpen={isSubjectModalOpen}
-        onClose={() => setIsSubjectModalOpen(false)}
+        onClose={() => {
+          setIsSubjectModalOpen(false);
+          setEditingSubject(null);
+        }}
+      />
+
+      {/* Batch Modal */}
+      <BatchFormModal
+        batch={editingBatch}
+        isOpen={isBatchModalOpen}
+        onClose={() => {
+          setIsBatchModalOpen(false);
+          setEditingBatch(null);
+        }}
+      />
+
+      {/* Schedule Modal */}
+      <ScheduleFormModal
+        schedule={editingSchedule}
+        isOpen={isScheduleModalOpen}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setEditingSchedule(null);
+        }}
       />
     </div>
   );

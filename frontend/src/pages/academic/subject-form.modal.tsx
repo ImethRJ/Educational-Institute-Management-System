@@ -52,11 +52,21 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
   }, [subject, isOpen]);
 
   const mutation = useMutation({
-    mutationFn: (payload: any) => api.post('/academic/subjects', payload),
+    mutationFn: (payload: any) =>
+      isEditing
+        ? api.put(`/academic/subjects/${subject.id}`, payload)
+        : api.post('/academic/subjects', payload),
     onSuccess: (res: any) => {
-      toast.success(`Subject ${res.data?.name || ''} created successfully!`);
+      toast.success(
+        isEditing
+          ? `Subject updated successfully!`
+          : `Subject ${res.data?.name || ''} created successfully!`,
+      );
       queryClient.invalidateQueries({ queryKey: ['subjects-list'] });
       onClose();
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to save subject.');
     },
   });
 

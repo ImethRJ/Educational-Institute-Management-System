@@ -61,6 +61,14 @@ export class AcademicController {
     return this.academicService.getAllBranches();
   }
 
+  // Academic Years
+  @Get('years')
+  @ApiOperation({ summary: 'Get list of academic years' })
+  async getAcademicYears() {
+    return this.academicService.getAllAcademicYears();
+  }
+
+
   // Subjects
   @Post('subjects')
   @ApiOperation({ summary: 'Create a new subject' })

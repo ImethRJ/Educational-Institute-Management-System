@@ -51,6 +51,14 @@ export class AcademicService {
     });
   }
 
+  // Academic Years
+  async getAllAcademicYears() {
+    return this.prisma.academicYear.findMany({
+      orderBy: { yearName: 'desc' },
+    });
+  }
+
+
   // Subjects
   async createSubject(dto: CreateSubjectDto) {
     const existing = await this.prisma.subject.findUnique({
