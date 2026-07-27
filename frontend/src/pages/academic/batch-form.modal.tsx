@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { BatchClass, Subject, Teacher } from '../../types';
+import { BatchClass, Subject, Teacher, GradeLevel } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/card';
@@ -24,6 +24,7 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
   const [branchId, setBranchId] = useState('');
   const [academicYearId, setAcademicYearId] = useState('');
+  const [gradeLevelId, setGradeLevelId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [batchName, setBatchName] = useState('');
@@ -43,6 +44,12 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
     enabled: isOpen,
   });
 
+  const { data: gradesRes } = useQuery({
+    queryKey: ['grades-list'],
+    queryFn: () => api.get('/academic/grades'),
+    enabled: isOpen,
+  });
+
   const { data: subjectsRes } = useQuery({
     queryKey: ['subjects-list'],
     queryFn: () => api.get('/academic/subjects'),
@@ -57,6 +64,8 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
   const branches = (branchesRes as any)?.data || [];
   const years = (yearsRes as any)?.data || [];
+  const rawGrades = (gradesRes as any)?.data;
+  const grades: GradeLevel[] = Array.isArray(rawGrades) ? rawGrades : rawGrades?.items || [];
   const rawSubjects = (subjectsRes as any)?.data;
   const subjects: Subject[] = Array.isArray(rawSubjects) ? rawSubjects : rawSubjects?.items || [];
   const rawTeachers = (teachersRes as any)?.data;
@@ -67,12 +76,14 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       setBatchName(batch.batchName || '');
       setMonthlyFee(Number(batch.monthlyFee) || 3500);
       setHallNumber(batch.hallNumber || 'Hall A');
+      setGradeLevelId(batch.gradeLevelId || batch.gradeLevel?.id || '');
       setSubjectId(batch.subject?.id || '');
       setTeacherId(batch.teacher?.id || '');
     } else {
       setBatchName('');
       setMonthlyFee(3500);
       setHallNumber('Hall A');
+      setGradeLevelId('');
       setSubjectId('');
       setTeacherId('');
     }
@@ -111,10 +122,11 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       hallNumber,
       subjectId,
       teacherId,
+      gradeLevelId: gradeLevelId || undefined,
     };
     if (!isEditing) {
-      payload.branchId = branchId || (branches[0]?.id);
-      payload.academicYearId = academicYearId || (years[0]?.id);
+      payload.branchId = branchId || branches[0]?.id;
+      payload.academicYearId = academicYearId || years[0]?.id;
     }
 
     mutation.mutate(payload);
@@ -175,7 +187,7 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
               )}
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold">Subject *</label>
+                <label className="text-xs font-semibold">Open Subject *</label>
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
                   value={subjectId}
@@ -192,6 +204,22 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
               </div>
 
               <div className="space-y-1">
+                <label className="text-xs font-semibold">Target Grade Level</label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
+                  value={gradeLevelId}
+                  onChange={(e) => setGradeLevelId(e.target.value)}
+                >
+                  <option value="">-- General / All Grades --</option>
+                  {grades.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
                 <label className="text-xs font-semibold">Assigned Teacher *</label>
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
@@ -212,7 +240,7 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
             <div className="space-y-1">
               <label className="text-xs font-semibold">Batch Class Name *</label>
               <Input
-                placeholder="e.g. 2026 Grade 11 Maths - Batch A"
+                placeholder="e.g. 2026 Grade 11 History - Batch A"
                 value={batchName}
                 onChange={(e) => setBatchName(e.target.value)}
                 required

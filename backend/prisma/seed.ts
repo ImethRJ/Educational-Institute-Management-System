@@ -92,62 +92,58 @@ async function main() {
   const g11 = await prisma.gradeLevel.findFirst({ where: { numericOrder: 11 } });
   const g13 = await prisma.gradeLevel.findFirst({ where: { numericOrder: 13 } });
 
-  // 4b. Seed Subjects
+  // 4b. Seed Open Academic Subjects
   const sampleSubjects = [
     {
-      code: 'MATH-G11',
-      name: 'Mathematics (O/L)',
+      code: 'MATH',
+      name: 'Mathematics',
       standardMonthlyFee: 2800.0,
-      gradeLevelId: g11?.id || mainBranch.id,
     },
     {
-      code: 'SCI-G11',
-      name: 'Science (O/L)',
+      code: 'SCI',
+      name: 'Science',
       standardMonthlyFee: 2800.0,
-      gradeLevelId: g11?.id || mainBranch.id,
     },
     {
-      code: 'ENG-G11',
-      name: 'English Language (O/L)',
+      code: 'ENG',
+      name: 'English Language',
       standardMonthlyFee: 2500.0,
-      gradeLevelId: g11?.id || mainBranch.id,
     },
     {
-      code: 'CMATH-A/L',
-      name: 'Combined Mathematics (A/L)',
+      code: 'HIST',
+      name: 'History',
+      standardMonthlyFee: 2500.0,
+    },
+    {
+      code: 'CMATH',
+      name: 'Combined Mathematics',
       standardMonthlyFee: 3500.0,
-      gradeLevelId: g13?.id || mainBranch.id,
     },
     {
-      code: 'PHY-A/L',
-      name: 'Physics (A/L)',
+      code: 'PHY',
+      name: 'Physics',
       standardMonthlyFee: 3500.0,
-      gradeLevelId: g13?.id || mainBranch.id,
     },
     {
-      code: 'CHEM-A/L',
-      name: 'Chemistry (A/L)',
+      code: 'CHEM',
+      name: 'Chemistry',
       standardMonthlyFee: 3500.0,
-      gradeLevelId: g13?.id || mainBranch.id,
     },
     {
-      code: 'ICT-A/L',
-      name: 'Information & Communication Tech (A/L)',
+      code: 'ICT',
+      name: 'Information & Communication Technology',
       standardMonthlyFee: 3200.0,
-      gradeLevelId: g13?.id || mainBranch.id,
     },
   ];
 
   for (const sub of sampleSubjects) {
-    if (sub.gradeLevelId) {
-      await prisma.subject.upsert({
-        where: { code: sub.code },
-        update: {},
-        create: sub,
-      });
-    }
+    await prisma.subject.upsert({
+      where: { code: sub.code },
+      update: { name: sub.name, standardMonthlyFee: sub.standardMonthlyFee },
+      create: sub,
+    });
   }
-  console.log('✅ Subjects seeded successfully.');
+  console.log('✅ Open Academic Subjects seeded successfully.');
 
   // 5. Seed Sample Teachers
   const sampleTeachers = [

@@ -12,6 +12,11 @@ export class CreateBatchDto {
   @IsUUID('4', { message: 'Invalid academic year UUID.' })
   academicYearId: string;
 
+  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Target Grade Level ID' })
+  @IsOptional()
+  @IsUUID('4', { message: 'Invalid grade level UUID.' })
+  gradeLevelId?: string;
+
   @ApiProperty({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Subject ID' })
   @IsNotEmpty({ message: 'Subject ID is required.' })
   @IsUUID('4', { message: 'Invalid subject UUID.' })

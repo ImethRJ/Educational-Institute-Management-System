@@ -100,6 +100,7 @@ export class AcademicService {
       data: dto,
       include: {
         subject: true,
+        gradeLevel: true,
         teacher: { select: { id: true, fullName: true, teacherCode: true } },
         branch: true,
       },
@@ -128,6 +129,7 @@ export class AcademicService {
       orderBy: { createdAt: 'desc' },
       include: {
         subject: { select: { id: true, name: true, code: true } },
+        gradeLevel: { select: { id: true, name: true, numericOrder: true } },
         teacher: { select: { id: true, fullName: true, teacherCode: true } },
         branch: { select: { name: true } },
         classSchedules: true,
@@ -141,6 +143,7 @@ export class AcademicService {
       where: { id },
       include: {
         subject: true,
+        gradeLevel: true,
         teacher: true,
         branch: true,
         academicYear: true,
@@ -164,6 +167,7 @@ export class AcademicService {
       data: dto,
       include: {
         subject: true,
+        gradeLevel: true,
         teacher: { select: { id: true, fullName: true, teacherCode: true } },
       },
     });

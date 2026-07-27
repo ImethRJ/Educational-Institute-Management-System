@@ -100,20 +100,22 @@ export const SubjectFormModal: React.FC<SubjectFormModalProps> = ({
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4 pt-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold">Target Grade Level *</label>
+              <label className="text-xs font-semibold">Target Grade Level (Optional)</label>
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm"
                 value={gradeLevelId}
                 onChange={(e) => setGradeLevelId(e.target.value)}
-                required
               >
-                <option value="">-- Choose Grade Level --</option>
+                <option value="">-- Open Subject (All Grades) --</option>
                 {grades.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
                   </option>
                 ))}
               </select>
+              <p className="text-[11px] text-muted-foreground">
+                Leave as "Open Subject" if taught across multiple grades (e.g. History, Maths).
+              </p>
             </div>
 
             <div className="space-y-1">

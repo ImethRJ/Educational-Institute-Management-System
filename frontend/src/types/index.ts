@@ -108,7 +108,7 @@ export interface GradeLevel {
 
 export interface Subject {
   id: string;
-  gradeLevelId: string;
+  gradeLevelId?: string;
   code: string;
   name: string;
   standardMonthlyFee: number;
@@ -121,6 +121,8 @@ export interface BatchClass {
   batchName: string;
   monthlyFee: number;
   hallNumber?: string;
+  gradeLevelId?: string;
+  gradeLevel?: GradeLevel;
   subject: { id: string; name: string; code: string };
   teacher: { id: string; fullName: string; teacherCode: string };
   branch?: { name: string };

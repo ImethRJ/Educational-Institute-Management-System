@@ -27,4 +27,14 @@ export class UpdateBatchDto {
   @IsOptional()
   @IsUUID('4')
   branchId?: string;
+
+  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Grade Level ID' })
+  @IsOptional()
+  @IsUUID('4')
+  gradeLevelId?: string;
+
+  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Subject ID' })
+  @IsOptional()
+  @IsUUID('4')
+  subjectId?: string;
 }

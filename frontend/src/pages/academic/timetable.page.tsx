@@ -341,7 +341,7 @@ export const TimetablePage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-xs font-semibold">{sub.name}</TableCell>
                       <TableCell className="text-xs">
-                        <Badge variant="outline">{sub.gradeLevel?.name || 'Standard'}</Badge>
+                        <Badge variant="outline">{sub.gradeLevel?.name || 'Open Catalog'}</Badge>
                       </TableCell>
                       <TableCell className="text-xs font-bold text-emerald-600">
                         LKR {Number(sub.standardMonthlyFee || 0).toLocaleString()}
@@ -394,8 +394,9 @@ export const TimetablePage: React.FC = () => {
                 <TableRow>
                   <TableHead>Batch Class Name</TableHead>
                   <TableHead>Assigned Teacher</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Monthly Class Fee</TableHead>
+                  <TableHead>Open Subject</TableHead>
+                  <TableHead>Target Grade</TableHead>
+                  <TableHead>Monthly Fee</TableHead>
                   <TableHead>Hall Number</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -403,7 +404,7 @@ export const TimetablePage: React.FC = () => {
               <TableBody>
                 {loadingBatches ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
                       Loading batch classes...
                     </TableCell>
                   </TableRow>
@@ -415,6 +416,11 @@ export const TimetablePage: React.FC = () => {
                         {b.teacher?.fullName || 'N/A'} ({b.teacher?.teacherCode})
                       </TableCell>
                       <TableCell className="text-xs font-mono">{b.subject?.name || 'Subject'}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant="secondary" className="text-[10px] font-semibold">
+                          {b.gradeLevel?.name || 'General'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-xs font-bold text-emerald-600">
                         LKR {Number(b.monthlyFee || 0).toLocaleString()}
                       </TableCell>

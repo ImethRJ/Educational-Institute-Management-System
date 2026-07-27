@@ -150,20 +150,21 @@ model GradeLevel {
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
 
   subjects      Subject[]
+  batchClasses  BatchClass[]
 
   @@map("grade_level")
 }
 
 model Subject {
   id                 String          @id @default(uuid()) @db.Uuid
-  gradeLevelId       String          @map("grade_level_id") @db.Uuid
+  gradeLevelId       String?         @map("grade_level_id") @db.Uuid
   code               String          @unique @db.VarChar(20)
   name               String          @db.VarChar(100)
   standardMonthlyFee Decimal         @map("standard_monthly_fee") @db.Decimal(10, 2)
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  gradeLevel         GradeLevel      @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  gradeLevel         GradeLevel?     @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
   teacherSubjects    TeacherSubject[]
   batchClasses       BatchClass[]
 
@@ -221,6 +222,7 @@ model BatchClass {
   id               String            @id @default(uuid()) @db.Uuid
   branchId         String            @map("branch_id") @db.Uuid
   academicYearId   String            @map("academic_year_id") @db.Uuid
+  gradeLevelId     String?           @map("grade_level_id") @db.Uuid
   subjectId        String            @map("subject_id") @db.Uuid
   teacherId        String            @map("teacher_id") @db.Uuid
   batchName        String            @map("batch_name") @db.VarChar(100)
@@ -230,6 +232,7 @@ model BatchClass {
 
   branch           Branch            @relation(fields: [branchId], references: [id])
   academicYear     AcademicYear      @relation(fields: [academicYearId], references: [id])
+  gradeLevel       GradeLevel?       @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
   subject          Subject           @relation(fields: [subjectId], references: [id])
   teacher          Teacher           @relation(fields: [teacherId], references: [id])
 
