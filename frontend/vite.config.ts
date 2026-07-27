@@ -19,4 +19,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@tanstack/react-query', '@tanstack/react-table', 'lucide-react', 'sonner'],
+          'chart-vendor': ['recharts'],
+        },
+      },
+    },
+  },
 });

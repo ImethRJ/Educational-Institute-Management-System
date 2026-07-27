@@ -3,14 +3,15 @@ import {
   UnauthorizedException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { RedisService } from '../../common/redis/redis.service';
-import { LoginDto } from './dto/login.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import * as argon2 from 'argon2';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { RedisService } from "../../common/redis/redis.service";
+import { LoginDto } from "./dto/login.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import * as argon2 from "argon2";
+import * as crypto from "crypto";
 
 @Injectable()
 export class AuthService {
@@ -33,7 +34,7 @@ export class AuthService {
     });
 
     if (!admin) {
-      throw new UnauthorizedException('Invalid credentials provided.');
+      throw new UnauthorizedException("Invalid credentials provided.");
     }
 
     // 2. Check if account is locked
@@ -56,7 +57,9 @@ export class AuthService {
 
       if (failedAttempts >= 5) {
         lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes lockout
-        this.logger.warn(`Admin account locked due to 5 failed attempts from IP: ${ipAddress}`);
+        this.logger.warn(
+          `Admin account locked due to 5 failed attempts from IP: ${ipAddress}`,
+        );
       }
 
       await this.prisma.systemAdmin.update({
@@ -67,7 +70,7 @@ export class AuthService {
         },
       });
 
-      throw new UnauthorizedException('Invalid credentials provided.');
+      throw new UnauthorizedException("Invalid credentials provided.");
     }
 
     // 4. Reset failed attempts on successful login
@@ -81,15 +84,19 @@ export class AuthService {
     });
 
     // 5. Generate JWT Token
-    const payload = { sub: admin.id, username: admin.username, email: admin.email };
+    const payload = {
+      sub: admin.id,
+      username: admin.username,
+      email: admin.email,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     // 6. Log Auth Activity in Audit Log
     await this.prisma.auditLog.create({
       data: {
         adminId: admin.id,
-        action: 'ADMIN_LOGIN_SUCCESS',
-        entityName: 'system_admin',
+        action: "ADMIN_LOGIN_SUCCESS",
+        entityName: "system_admin",
         entityId: admin.id,
         ipAddress,
       },
@@ -113,7 +120,7 @@ export class AuthService {
     });
 
     if (!admin) {
-      throw new UnauthorizedException('Admin user not found.');
+      throw new UnauthorizedException("Admin user not found.");
     }
 
     const isCurrentPasswordValid = await argon2.verify(
@@ -122,7 +129,7 @@ export class AuthService {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new BadRequestException('Current password provided is incorrect.');
+      throw new BadRequestException("Current password provided is incorrect.");
     }
 
     const newPasswordHash = await argon2.hash(dto.newPassword);
@@ -137,13 +144,16 @@ export class AuthService {
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'ADMIN_PASSWORD_CHANGED',
-        entityName: 'system_admin',
+        action: "ADMIN_PASSWORD_CHANGED",
+        entityName: "system_admin",
         entityId: adminId,
       },
     });
 
-    return { message: 'Password changed successfully. Please log in again with your new password.' };
+    return {
+      message:
+        "Password changed successfully. Please log in again with your new password.",
+    };
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -153,18 +163,21 @@ export class AuthService {
 
     // Security best practice: Always return generic message to prevent email enumeration
     if (!admin) {
-      return { message: 'If the provided email is registered, password reset instructions have been sent.' };
+      return {
+        message:
+          "If the provided email is registered, password reset instructions have been sent.",
+      };
     }
 
-    // Generate time-limited reset token in Redis (15 mins)
-    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    // Generate cryptographically secure time-limited reset token in Redis (15 mins)
+    const resetToken = crypto.randomBytes(32).toString("hex");
     await this.redisService.set(`reset_token:${resetToken}`, admin.id, 900);
 
-    this.logger.log(`Password reset token generated for admin ${admin.email}: ${resetToken}`);
+    this.logger.log(`Password reset token generated for admin ${admin.email}`);
 
     return {
-      message: 'If the provided email is registered, password reset instructions have been sent.',
-      resetToken, // Returned in dev mode for administrative testing
+      message:
+        "If the provided email is registered, password reset instructions have been sent.",
     };
   }
 }

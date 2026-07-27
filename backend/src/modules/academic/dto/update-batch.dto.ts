@@ -1,47 +1,76 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, IsUUID, Min, IsArray, ValidateIf } from 'class-validator';
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsUUID,
+  Min,
+  IsArray,
+  ValidateIf,
+} from "class-validator";
 
 export class UpdateBatchDto {
-  @ApiPropertyOptional({ example: '2026 A/L Combined Maths Revision', description: 'Batch class name' })
+  @ApiPropertyOptional({
+    example: "2026 A/L Combined Maths Revision",
+    description: "Batch class name",
+  })
   @IsOptional()
   @IsString()
   batchName?: string;
 
-  @ApiPropertyOptional({ example: 3500.0, description: 'Monthly fee in LKR' })
+  @ApiPropertyOptional({ example: 3500.0, description: "Monthly fee in LKR" })
   @IsOptional()
   @IsNumber()
   @Min(0)
   monthlyFee?: number;
 
-  @ApiPropertyOptional({ example: 'Hall B', description: 'Assigned hall / room number' })
+  @ApiPropertyOptional({
+    example: "Hall B",
+    description: "Assigned hall / room number",
+  })
   @IsOptional()
   @IsString()
   hallNumber?: string;
 
-  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Teacher ID' })
+  @ApiPropertyOptional({
+    example: "c39a82e1-4567-4b12-8901-23456789abcd",
+    description: "Teacher ID",
+  })
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID("4")
   teacherId?: string;
 
-  @ApiPropertyOptional({ example: 'd39a82e1-4567-4b12-8901-23456789abcd', description: 'Branch ID' })
+  @ApiPropertyOptional({
+    example: "d39a82e1-4567-4b12-8901-23456789abcd",
+    description: "Branch ID",
+  })
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID("4")
   branchId?: string;
 
-  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Grade Level ID' })
-  @ValidateIf((o, val) => val !== null && val !== undefined && val !== '')
+  @ApiPropertyOptional({
+    example: "c39a82e1-4567-4b12-8901-23456789abcd",
+    description: "Grade Level ID",
+  })
+  @ValidateIf((o, val) => val !== null && val !== undefined && val !== "")
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID("4")
   gradeLevelId?: string | null;
 
-  @ApiPropertyOptional({ example: 'c39a82e1-4567-4b12-8901-23456789abcd', description: 'Subject ID' })
+  @ApiPropertyOptional({
+    example: "c39a82e1-4567-4b12-8901-23456789abcd",
+    description: "Subject ID",
+  })
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID("4")
   subjectId?: string;
 
-  @ApiPropertyOptional({ example: ['uuid-1', 'uuid-2'], description: 'Multiple Target Grade Level IDs' })
+  @ApiPropertyOptional({
+    example: ["uuid-1", "uuid-2"],
+    description: "Multiple Target Grade Level IDs",
+  })
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID("4", { each: true })
   gradeLevelIds?: string[];
 }

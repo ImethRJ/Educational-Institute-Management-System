@@ -4,14 +4,15 @@ import {
   BadRequestException,
   ConflictException,
   Logger,
-} from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { AttendanceService } from '../attendance/attendance.service';
-import { GenerateMonthlyInvoicesDto } from './dto/generate-invoices.dto';
-import { OverrideZeroAttendanceDto } from './dto/override-zero-att.dto';
-import { RecordPaymentDto } from './dto/record-payment.dto';
-import { ProcessTeacherPayoutDto } from './dto/payout.dto';
-import { FeeCategory, InvoiceStatus } from '@prisma/client';
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { AttendanceService } from "../attendance/attendance.service";
+import { GenerateMonthlyInvoicesDto } from "./dto/generate-invoices.dto";
+import { OverrideZeroAttendanceDto } from "./dto/override-zero-att.dto";
+import { RecordPaymentDto } from "./dto/record-payment.dto";
+import { ProcessTeacherPayoutDto } from "./dto/payout.dto";
+import { FeeCategory, InvoiceStatus } from "@prisma/client";
+import * as crypto from "crypto";
 
 @Injectable()
 export class FinanceService {
@@ -26,14 +27,17 @@ export class FinanceService {
    * Automatic Monthly Invoice Generation Engine
    * Enforces Concession logic and 0% Monthly Attendance Prevention Rule
    */
-  async generateMonthlyInvoices(dto: GenerateMonthlyInvoicesDto, adminId: string) {
+  async generateMonthlyInvoices(
+    dto: GenerateMonthlyInvoicesDto,
+    adminId: string,
+  ) {
     const { billingMonth, billingYear, batchClassId } = dto;
 
     // Fetch active enrollments
     const enrollments = await this.prisma.studentEnrollment.findMany({
       where: {
         isActive: true,
-        student: { status: 'ACTIVE' },
+        student: { status: "ACTIVE" },
         ...(batchClassId ? { batchClassId } : {}),
       },
       include: {
@@ -65,12 +69,13 @@ export class FinanceService {
       if (existingInvoice) continue;
 
       // 1. Calculate Monthly Attendance Percentage
-      const attStats = await this.attendanceService.getMonthlyAttendancePercentage(
-        student.id,
-        batchClass.id,
-        billingMonth,
-        billingYear,
-      );
+      const attStats =
+        await this.attendanceService.getMonthlyAttendancePercentage(
+          student.id,
+          batchClass.id,
+          billingMonth,
+          billingYear,
+        );
 
       // 2. Evaluate Fee Concession
       const originalFee = Number(batchClass.monthlyFee);
@@ -84,11 +89,13 @@ export class FinanceService {
 
       // 3. Evaluate 0% Monthly Attendance Rule
       // If attendance is 0% (and total sessions > 0), suppress invoice unless overridden
-      const isZeroAttendance = attStats.totalSessions > 0 && attStats.presentCount === 0;
+      const isZeroAttendance =
+        attStats.totalSessions > 0 && attStats.presentCount === 0;
 
-      const invoiceNumber = `INV-${billingYear}-${String(billingMonth).padStart(2, '0')}-${Math.floor(
-        1000 + Math.random() * 9000,
-      )}`;
+      const invoiceNumber = `INV-${billingYear}${String(billingMonth).padStart(2, "0")}-${crypto
+        .randomBytes(3)
+        .toString("hex")
+        .toUpperCase()}`;
 
       await this.prisma.monthlyInvoice.create({
         data: {
@@ -100,7 +107,9 @@ export class FinanceService {
           originalFee,
           feeCategoryApplied: student.feeCategory,
           finalAmountDue,
-          status: isZeroAttendance ? InvoiceStatus.UNPAID : InvoiceStatus.UNPAID,
+          status: isZeroAttendance
+            ? InvoiceStatus.UNPAID
+            : InvoiceStatus.UNPAID,
           attendancePercentage: attStats.percentage,
           isZeroAttendanceOverride: false,
           dueDate,
@@ -117,9 +126,14 @@ export class FinanceService {
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'MONTHLY_INVOICES_GENERATED',
-        entityName: 'monthly_invoice',
-        newValues: { billingMonth, billingYear, generatedCount, suppressedCount },
+        action: "MONTHLY_INVOICES_GENERATED",
+        entityName: "monthly_invoice",
+        newValues: {
+          billingMonth,
+          billingYear,
+          generatedCount,
+          suppressedCount,
+        },
       },
     });
 
@@ -148,7 +162,9 @@ export class FinanceService {
     }
 
     if (invoice.status === InvoiceStatus.PAID) {
-      throw new BadRequestException('Cannot cancel an invoice that has already been paid.');
+      throw new BadRequestException(
+        "Cannot cancel an invoice that has already been paid.",
+      );
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -156,15 +172,15 @@ export class FinanceService {
         where: { id: invoiceId },
         data: {
           status: InvoiceStatus.CANCELLED,
-          overrideReason: reason || 'Invoice cancelled by administrator',
+          overrideReason: reason || "Invoice cancelled by administrator",
         },
       });
 
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'INVOICE_CANCELLED',
-          entityName: 'monthly_invoice',
+          action: "INVOICE_CANCELLED",
+          entityName: "monthly_invoice",
           entityId: invoiceId,
           newValues: { status: InvoiceStatus.CANCELLED, reason },
         },
@@ -205,8 +221,8 @@ export class FinanceService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'ZERO_ATTENDANCE_OVERRIDE_APPROVED',
-          entityName: 'monthly_invoice',
+          action: "ZERO_ATTENDANCE_OVERRIDE_APPROVED",
+          entityName: "monthly_invoice",
           entityId: invoiceId,
           newValues: { overrideReason: dto.overrideReason },
         },
@@ -222,9 +238,9 @@ export class FinanceService {
    * Record Payment & Execute Revenue Split Engine
    */
   async recordPayment(dto: RecordPaymentDto, adminId: string) {
-    const receiptNumber = `RCP-${new Date().getFullYear()}-${String(
+    const receiptNumber = `RCP-${new Date().getFullYear()}${String(
       new Date().getMonth() + 1,
-    ).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    ).padStart(2, "0")}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
 
     return this.prisma.$transaction(async (tx) => {
       let teacherId: string | null = null;
@@ -241,21 +257,38 @@ export class FinanceService {
         });
 
         if (!invoice) {
-          throw new NotFoundException(`Invoice with ID ${dto.invoiceId} not found.`);
+          throw new NotFoundException(
+            `Invoice with ID ${dto.invoiceId} not found.`,
+          );
         }
 
         teacherId = invoice.batchClass.teacherId;
         const teacher = invoice.batchClass.teacher;
+        const subjectId = invoice.batchClass.subjectId;
 
-        // Tuition Fee Split Calculation
-        const commissionPct = Number(teacher.defaultTuitionCommissionPct);
+        // Check for Custom Subject Commission
+        const teacherSubject = await tx.teacherSubject.findUnique({
+          where: { teacherId_subjectId: { teacherId, subjectId } },
+        });
+
+        const commissionPct =
+          teacherSubject && teacherSubject.customTuitionCommissionPct !== null
+            ? Number(teacherSubject.customTuitionCommissionPct)
+            : Number(teacher.defaultTuitionCommissionPct);
+
         teacherShareAmount = dto.amountPaid * (commissionPct / 100);
         instituteShareAmount = dto.amountPaid - teacherShareAmount;
 
-        // Update Invoice Status
-        const newPaidTotal = dto.amountPaid; // Simplified full/partial payment
+        // Accumulated Payment Calculation (handles partial payments correctly)
+        const previousPayments = await tx.paymentRecord.aggregate({
+          where: { invoiceId: invoice.id },
+          _sum: { amountPaid: true },
+        });
+
+        const accumulatedPaid =
+          (Number(previousPayments._sum.amountPaid) || 0) + dto.amountPaid;
         const newStatus =
-          newPaidTotal >= Number(invoice.finalAmountDue)
+          accumulatedPaid >= Number(invoice.finalAmountDue)
             ? InvoiceStatus.PAID
             : InvoiceStatus.PARTIALLY_PAID;
 
@@ -266,8 +299,13 @@ export class FinanceService {
       } else if (!dto.isAdmissionFee) {
         // Fallback: Find unpaid monthly invoice for student if invoiceId wasn't passed directly
         const unpaidInvoice = await tx.monthlyInvoice.findFirst({
-          where: { studentId: dto.studentId, status: InvoiceStatus.UNPAID },
-          orderBy: { createdAt: 'asc' },
+          where: {
+            studentId: dto.studentId,
+            status: {
+              in: [InvoiceStatus.UNPAID, InvoiceStatus.PARTIALLY_PAID],
+            },
+          },
+          orderBy: { createdAt: "asc" },
           include: { batchClass: { include: { teacher: true } } },
         });
 
@@ -275,12 +313,29 @@ export class FinanceService {
           dto.invoiceId = unpaidInvoice.id;
           teacherId = unpaidInvoice.batchClass.teacherId;
           const teacher = unpaidInvoice.batchClass.teacher;
-          const commissionPct = Number(teacher.defaultTuitionCommissionPct);
+          const subjectId = unpaidInvoice.batchClass.subjectId;
+
+          const teacherSubject = await tx.teacherSubject.findUnique({
+            where: { teacherId_subjectId: { teacherId, subjectId } },
+          });
+
+          const commissionPct =
+            teacherSubject && teacherSubject.customTuitionCommissionPct !== null
+              ? Number(teacherSubject.customTuitionCommissionPct)
+              : Number(teacher.defaultTuitionCommissionPct);
+
           teacherShareAmount = dto.amountPaid * (commissionPct / 100);
           instituteShareAmount = dto.amountPaid - teacherShareAmount;
 
+          const previousPayments = await tx.paymentRecord.aggregate({
+            where: { invoiceId: unpaidInvoice.id },
+            _sum: { amountPaid: true },
+          });
+
+          const accumulatedPaid =
+            (Number(previousPayments._sum.amountPaid) || 0) + dto.amountPaid;
           const newStatus =
-            dto.amountPaid >= Number(unpaidInvoice.finalAmountDue)
+            accumulatedPaid >= Number(unpaidInvoice.finalAmountDue)
               ? InvoiceStatus.PAID
               : InvoiceStatus.PARTIALLY_PAID;
 
@@ -298,7 +353,9 @@ export class FinanceService {
         });
 
         if (!student) {
-          throw new NotFoundException(`Student with ID ${dto.studentId} not found.`);
+          throw new NotFoundException(
+            `Student with ID ${dto.studentId} not found.`,
+          );
         }
 
         // Mark student admission fee paid
@@ -311,10 +368,10 @@ export class FinanceService {
           teacherId = student.referredByTeacher.id;
           const teacher = student.referredByTeacher;
 
-          if (teacher.admissionCommissionType === 'PERCENTAGE') {
+          if (teacher.admissionCommissionType === "PERCENTAGE") {
             const pct = Number(teacher.admissionCommissionValue || 0);
             teacherShareAmount = dto.amountPaid * (pct / 100);
-          } else if (teacher.admissionCommissionType === 'FIXED_AMOUNT') {
+          } else if (teacher.admissionCommissionType === "FIXED_AMOUNT") {
             teacherShareAmount = Math.min(
               dto.amountPaid,
               Number(teacher.admissionCommissionValue || 0),
@@ -345,8 +402,8 @@ export class FinanceService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'PAYMENT_RECORDED',
-          entityName: 'payment_record',
+          action: "PAYMENT_RECORDED",
+          entityName: "payment_record",
           entityId: paymentRecord.id,
           newValues: {
             receiptNumber,
@@ -397,9 +454,10 @@ export class FinanceService {
 
     const netPayoutAmount = totalTuitionEarned + totalAdmissionCommission;
 
-    const payoutNumber = `PAY-${periodYear}-${String(periodMonth).padStart(2, '0')}-${Math.floor(
-      100 + Math.random() * 900,
-    )}`;
+    const payoutNumber = `PAY-${periodYear}${String(periodMonth).padStart(2, "0")}-${crypto
+      .randomBytes(3)
+      .toString("hex")
+      .toUpperCase()}`;
 
     return this.prisma.$transaction(async (tx) => {
       const payout = await tx.teacherPayout.create({
@@ -431,10 +489,14 @@ export class FinanceService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'TEACHER_PAYOUT_PROCESSED',
-          entityName: 'teacher_payout',
+          action: "TEACHER_PAYOUT_PROCESSED",
+          entityName: "teacher_payout",
           entityId: payout.id,
-          newValues: { payoutNumber, netPayoutAmount, linkedPaymentsCount: payments.length },
+          newValues: {
+            payoutNumber,
+            netPayoutAmount,
+            linkedPaymentsCount: payments.length,
+          },
         },
       });
 
@@ -450,10 +512,14 @@ export class FinanceService {
 
     return this.prisma.monthlyInvoice.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
-        student: { select: { studentCode: true, fullName: true, mobileNumber: true } },
-        batchClass: { select: { batchName: true, subject: { select: { name: true } } } },
+        student: {
+          select: { studentCode: true, fullName: true, mobileNumber: true },
+        },
+        batchClass: {
+          select: { batchName: true, subject: { select: { name: true } } },
+        },
       },
     });
   }
@@ -465,7 +531,7 @@ export class FinanceService {
 
     return this.prisma.paymentRecord.findMany({
       where,
-      orderBy: { paymentDate: 'desc' },
+      orderBy: { paymentDate: "desc" },
       include: {
         student: { select: { studentCode: true, fullName: true } },
         teacher: { select: { teacherCode: true, fullName: true } },
@@ -475,12 +541,23 @@ export class FinanceService {
   }
 
   async getDashboardKPIs() {
-    const activeStudents = await this.prisma.student.count({ where: { status: 'ACTIVE' } });
-    const activeTeachers = await this.prisma.teacher.count({ where: { status: 'ACTIVE' } });
+    const activeStudents = await this.prisma.student.count({
+      where: { status: "ACTIVE" },
+    });
+    const activeTeachers = await this.prisma.teacher.count({
+      where: { status: "ACTIVE" },
+    });
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
 
     // Admission Fee Collections for current month
     const admissionPayments = await this.prisma.paymentRecord.aggregate({
@@ -505,24 +582,48 @@ export class FinanceService {
     });
 
     const unpaidInvoices = await this.prisma.monthlyInvoice.aggregate({
-      where: { status: 'UNPAID' },
+      where: { status: "UNPAID" },
       _sum: { finalAmountDue: true },
       _count: { id: true },
     });
 
     // 6-month historical collection trend
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const trendData = [];
 
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const dEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const dEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() - i + 1,
+        0,
+        23,
+        59,
+        59,
+      );
       const mName = months[d.getMonth()];
 
       const [tAgg, aAgg] = await Promise.all([
         this.prisma.paymentRecord.aggregate({
           where: { isAdmissionFee: false, paymentDate: { gte: d, lte: dEnd } },
-          _sum: { amountPaid: true, instituteShareAmount: true, teacherShareAmount: true },
+          _sum: {
+            amountPaid: true,
+            instituteShareAmount: true,
+            teacherShareAmount: true,
+          },
         }),
         this.prisma.paymentRecord.aggregate({
           where: { isAdmissionFee: true, paymentDate: { gte: d, lte: dEnd } },
@@ -545,8 +646,12 @@ export class FinanceService {
 
     const admissionIncome = Number(admissionPayments._sum.amountPaid || 0);
     const grossTuitionIncome = Number(tuitionPayments._sum.amountPaid || 0);
-    const monthlyInstituteTuitionCommission = Number(tuitionPayments._sum.instituteShareAmount || 0);
-    const teacherTuitionShareTotal = Number(tuitionPayments._sum.teacherShareAmount || 0);
+    const monthlyInstituteTuitionCommission = Number(
+      tuitionPayments._sum.instituteShareAmount || 0,
+    );
+    const teacherTuitionShareTotal = Number(
+      tuitionPayments._sum.teacherShareAmount || 0,
+    );
 
     return {
       activeStudents,

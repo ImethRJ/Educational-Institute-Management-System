@@ -3,13 +3,13 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
-} from '@nestjs/common';
-import { TeacherRepository } from './teacher.repository';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateTeacherDto } from './dto/create-teacher.dto';
-import { UpdateTeacherDto } from './dto/update-teacher.dto';
-import { UpdateCommissionConfigDto } from './dto/commission-config.dto';
-import { validateSriLankaNIC } from '../../common/utils/nic.validator';
+} from "@nestjs/common";
+import { TeacherRepository } from "./teacher.repository";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { CreateTeacherDto } from "./dto/create-teacher.dto";
+import { UpdateTeacherDto } from "./dto/update-teacher.dto";
+import { UpdateCommissionConfigDto } from "./dto/commission-config.dto";
+import { validateSriLankaNIC } from "../../common/utils/nic.validator";
 
 @Injectable()
 export class TeacherService {
@@ -22,12 +22,18 @@ export class TeacherService {
 
   async createTeacher(dto: CreateTeacherDto, adminId: string) {
     if (!validateSriLankaNIC(dto.nicOrPassport)) {
-      this.logger.warn(`NIC format validation notice for: ${dto.nicOrPassport}`);
+      this.logger.warn(
+        `NIC format validation notice for: ${dto.nicOrPassport}`,
+      );
     }
 
-    const existingNic = await this.teacherRepository.findByNic(dto.nicOrPassport);
+    const existingNic = await this.teacherRepository.findByNic(
+      dto.nicOrPassport,
+    );
     if (existingNic) {
-      throw new ConflictException(`Teacher with NIC/Passport ${dto.nicOrPassport} already exists.`);
+      throw new ConflictException(
+        `Teacher with NIC/Passport ${dto.nicOrPassport} already exists.`,
+      );
     }
 
     const teacherCode = await this.teacherRepository.generateNextTeacherCode();
@@ -48,7 +54,7 @@ export class TeacherService {
           qualifications: dto.qualifications,
           photoUrl: dto.photoUrl,
           defaultTuitionCommissionPct: dto.defaultTuitionCommissionPct,
-          admissionCommissionType: dto.admissionCommissionType || 'PERCENTAGE',
+          admissionCommissionType: dto.admissionCommissionType || "PERCENTAGE",
           admissionCommissionValue: dto.admissionCommissionValue || 0.0,
         },
       });
@@ -67,8 +73,8 @@ export class TeacherService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'TEACHER_REGISTERED',
-          entityName: 'teacher',
+          action: "TEACHER_REGISTERED",
+          entityName: "teacher",
           entityId: newTeacher.id,
           newValues: { teacherCode, fullName: newTeacher.fullName },
         },
@@ -77,7 +83,9 @@ export class TeacherService {
       return newTeacher;
     });
 
-    this.logger.log(`Teacher ${teacher.teacherCode} (${teacher.fullName}) created.`);
+    this.logger.log(
+      `Teacher ${teacher.teacherCode} (${teacher.fullName}) created.`,
+    );
     return teacher;
   }
 
@@ -123,8 +131,8 @@ export class TeacherService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'TEACHER_PROFILE_UPDATED',
-          entityName: 'teacher',
+          action: "TEACHER_PROFILE_UPDATED",
+          entityName: "teacher",
           entityId: id,
         },
       });
@@ -153,8 +161,8 @@ export class TeacherService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'TEACHER_COMMISSION_UPDATED',
-          entityName: 'teacher',
+          action: "TEACHER_COMMISSION_UPDATED",
+          entityName: "teacher",
           entityId: id,
           oldValues: {
             tuitionPct: teacher.defaultTuitionCommissionPct,
@@ -171,7 +179,11 @@ export class TeacherService {
     });
   }
 
-  async getTeacherEarningsSummary(teacherId: string, month?: number, year?: number) {
+  async getTeacherEarningsSummary(
+    teacherId: string,
+    month?: number,
+    year?: number,
+  ) {
     await this.getTeacherById(teacherId);
 
     const now = new Date();
@@ -188,7 +200,13 @@ export class TeacherService {
       },
       include: {
         student: { select: { studentCode: true, fullName: true } },
-        invoice: { select: { invoiceNumber: true, billingMonth: true, billingYear: true } },
+        invoice: {
+          select: {
+            invoiceNumber: true,
+            billingMonth: true,
+            billingYear: true,
+          },
+        },
       },
     });
 

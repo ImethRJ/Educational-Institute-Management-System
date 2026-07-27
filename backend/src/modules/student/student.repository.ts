@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { Prisma, Student } from '@prisma/client';
-import { StudentQueryDto } from './dto/student-query.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { Prisma, Student } from "@prisma/client";
+import { StudentQueryDto } from "./dto/student-query.dto";
 
 @Injectable()
 export class StudentRepository {
@@ -48,15 +48,22 @@ export class StudentRepository {
   }
 
   async findAll(query: StudentQueryDto) {
-    const { search, status, feeCategory, batchClassId, page = 1, limit = 20 } = query;
+    const {
+      search,
+      status,
+      feeCategory,
+      batchClassId,
+      page = 1,
+      limit = 20,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.StudentWhereInput = {};
 
     if (search) {
       where.OR = [
-        { studentCode: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
+        { studentCode: { contains: search, mode: "insensitive" } },
+        { fullName: { contains: search, mode: "insensitive" } },
         { mobileNumber: { contains: search } },
         { guardianMobile: { contains: search } },
         {
@@ -90,7 +97,7 @@ export class StudentRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           branch: {
             select: { id: true, code: true, name: true },
@@ -104,7 +111,11 @@ export class StudentRepository {
             where: { isActive: true },
             include: {
               batchClass: {
-                select: { id: true, batchName: true, subject: { select: { name: true } } },
+                select: {
+                  id: true,
+                  batchName: true,
+                  subject: { select: { name: true } },
+                },
               },
             },
           },
@@ -129,27 +140,28 @@ export class StudentRepository {
     });
   }
 
-  async generateNextStudentCode(branchCode: string = 'COL'): Promise<string> {
+  async generateNextStudentCode(branchCode: string = "COL"): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `SEC-${year}-${branchCode}-`;
 
-    const lastStudent = await this.prisma.student.findFirst({
+    const existingStudents = await this.prisma.student.findMany({
       where: {
         studentCode: { startsWith: prefix },
       },
-      orderBy: { studentCode: 'desc' },
+      select: { studentCode: true },
     });
 
-    let nextSeq = 1;
-    if (lastStudent) {
-      const parts = lastStudent.studentCode.split('-');
-      const lastSeqStr = parts[parts.length - 1];
-      const parsedSeq = parseInt(lastSeqStr, 10);
-      if (!isNaN(parsedSeq)) {
-        nextSeq = parsedSeq + 1;
+    let maxSeq = 0;
+    for (const s of existingStudents) {
+      const parts = s.studentCode.split("-");
+      const seqStr = parts[parts.length - 1];
+      const parsedSeq = parseInt(seqStr, 10);
+      if (!isNaN(parsedSeq) && parsedSeq > maxSeq) {
+        maxSeq = parsedSeq;
       }
     }
 
-    return `${prefix}${nextSeq.toString().padStart(4, '0')}`;
+    const nextSeq = maxSeq + 1;
+    return `${prefix}${nextSeq.toString().padStart(4, "0")}`;
   }
 }

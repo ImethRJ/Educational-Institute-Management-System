@@ -4,12 +4,12 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateGradeDto } from './dto/create-grade.dto';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { CreateBatchDto } from './dto/create-batch.dto';
-import { CreateScheduleDto } from './dto/create-schedule.dto';
+} from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { CreateGradeDto } from "./dto/create-grade.dto";
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { CreateBatchDto } from "./dto/create-batch.dto";
+import { CreateScheduleDto } from "./dto/create-schedule.dto";
 
 @Injectable()
 export class AcademicService {
@@ -24,19 +24,22 @@ export class AcademicService {
 
   async getAllGrades() {
     return this.prisma.gradeLevel.findMany({
-      orderBy: { numericOrder: 'asc' },
+      orderBy: { numericOrder: "asc" },
       include: { _count: { select: { subjects: true } } },
     });
   }
 
   async updateGrade(id: string, dto: any) {
     const grade = await this.prisma.gradeLevel.findUnique({ where: { id } });
-    if (!grade) throw new NotFoundException(`Grade level with ID ${id} not found.`);
+    if (!grade)
+      throw new NotFoundException(`Grade level with ID ${id} not found.`);
     return this.prisma.gradeLevel.update({ where: { id }, data: dto });
   }
 
   async deleteGrade(id: string) {
-    const subjectsCount = await this.prisma.subject.count({ where: { gradeLevelId: id } });
+    const subjectsCount = await this.prisma.subject.count({
+      where: { gradeLevelId: id },
+    });
     if (subjectsCount > 0) {
       throw new BadRequestException(
         `This grade level is locked because there are ${subjectsCount} subject(s) assigned to it.`,
@@ -49,17 +52,16 @@ export class AcademicService {
   async getAllBranches() {
     return this.prisma.branch.findMany({
       where: { isActive: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
   // Academic Years
   async getAllAcademicYears() {
     return this.prisma.academicYear.findMany({
-      orderBy: { yearName: 'desc' },
+      orderBy: { yearName: "desc" },
     });
   }
-
 
   // Subjects
   async createSubject(dto: CreateSubjectDto) {
@@ -67,7 +69,9 @@ export class AcademicService {
       where: { code: dto.code },
     });
     if (existing) {
-      throw new ConflictException(`Subject with code ${dto.code} already exists.`);
+      throw new ConflictException(
+        `Subject with code ${dto.code} already exists.`,
+      );
     }
 
     const { gradeLevelIds, ...rest } = dto;
@@ -86,7 +90,10 @@ export class AcademicService {
 
     return this.prisma.subject.create({
       data,
-      include: { gradeLevel: true, subjectGradeLevels: { include: { gradeLevel: true } } },
+      include: {
+        gradeLevel: true,
+        subjectGradeLevels: { include: { gradeLevel: true } },
+      },
     });
   }
 
@@ -101,7 +108,7 @@ export class AcademicService {
       : {};
     return this.prisma.subject.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       include: {
         gradeLevel: true,
         subjectGradeLevels: { include: { gradeLevel: true } },
@@ -111,16 +118,19 @@ export class AcademicService {
 
   async updateSubject(id: string, dto: any) {
     const subject = await this.prisma.subject.findUnique({ where: { id } });
-    if (!subject) throw new NotFoundException(`Subject with ID ${id} not found.`);
+    if (!subject)
+      throw new NotFoundException(`Subject with ID ${id} not found.`);
 
     const { gradeLevelIds, ...rest } = dto;
     const data: any = { ...rest };
-    if (data.gradeLevelId === '' || data.gradeLevelId === null) {
+    if (data.gradeLevelId === "" || data.gradeLevelId === null) {
       data.gradeLevelId = null;
     }
 
     if (gradeLevelIds !== undefined) {
-      await this.prisma.subjectGradeLevel.deleteMany({ where: { subjectId: id } });
+      await this.prisma.subjectGradeLevel.deleteMany({
+        where: { subjectId: id },
+      });
       if (gradeLevelIds && gradeLevelIds.length > 0) {
         data.subjectGradeLevels = {
           create: gradeLevelIds.map((gId: string) => ({ gradeLevelId: gId })),
@@ -142,10 +152,12 @@ export class AcademicService {
   }
 
   async deleteSubject(id: string) {
-    const batchesCount = await this.prisma.batchClass.count({ where: { subjectId: id } });
+    const batchesCount = await this.prisma.batchClass.count({
+      where: { subjectId: id },
+    });
     if (batchesCount > 0) {
       throw new BadRequestException(
-        `This subject is locked because there ${batchesCount === 1 ? 'is 1 active batch class' : `are ${batchesCount} active batch classes`} linked to it. Please reassign or delete the batch classes first.`,
+        `This subject is locked because there ${batchesCount === 1 ? "is 1 active batch class" : `are ${batchesCount} active batch classes`} linked to it. Please reassign or delete the batch classes first.`,
       );
     }
     return this.prisma.subject.delete({ where: { id } });
@@ -181,8 +193,8 @@ export class AcademicService {
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'BATCH_CLASS_CREATED',
-        entityName: 'batch_class',
+        action: "BATCH_CLASS_CREATED",
+        entityName: "batch_class",
         entityId: batch.id,
         newValues: { batchName: batch.batchName },
       },
@@ -198,7 +210,7 @@ export class AcademicService {
 
     return this.prisma.batchClass.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         subject: { select: { id: true, name: true, code: true } },
         gradeLevel: { select: { id: true, name: true, numericOrder: true } },
@@ -238,12 +250,14 @@ export class AcademicService {
     await this.getBatchById(id);
     const { gradeLevelIds, ...rest } = dto;
     const data: any = { ...rest };
-    if (data.gradeLevelId === '' || data.gradeLevelId === null) {
+    if (data.gradeLevelId === "" || data.gradeLevelId === null) {
       data.gradeLevelId = null;
     }
 
     if (gradeLevelIds !== undefined) {
-      await this.prisma.batchClassGradeLevel.deleteMany({ where: { batchClassId: id } });
+      await this.prisma.batchClassGradeLevel.deleteMany({
+        where: { batchClassId: id },
+      });
       if (gradeLevelIds && gradeLevelIds.length > 0) {
         data.batchClassGradeLevels = {
           create: gradeLevelIds.map((gId: string) => ({ gradeLevelId: gId })),
@@ -268,8 +282,8 @@ export class AcademicService {
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'BATCH_CLASS_UPDATED',
-        entityName: 'batch_class',
+        action: "BATCH_CLASS_UPDATED",
+        entityName: "batch_class",
         entityId: id,
         newValues: dto,
       },
@@ -284,7 +298,7 @@ export class AcademicService {
     });
     if (activeEnrollments > 0) {
       throw new BadRequestException(
-        `This batch class is locked because there ${activeEnrollments === 1 ? 'is 1 actively enrolled student' : `are ${activeEnrollments} actively enrolled students`}. Unenroll students first before deleting.`,
+        `This batch class is locked because there ${activeEnrollments === 1 ? "is 1 actively enrolled student" : `are ${activeEnrollments} actively enrolled students`}. Unenroll students first before deleting.`,
       );
     }
 
@@ -293,8 +307,8 @@ export class AcademicService {
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'BATCH_CLASS_DELETED',
-        entityName: 'batch_class',
+        action: "BATCH_CLASS_DELETED",
+        entityName: "batch_class",
         entityId: id,
       },
     });
@@ -305,7 +319,9 @@ export class AcademicService {
   // Timetable Schedules
   async createClassSchedule(dto: CreateScheduleDto) {
     if (dto.startTime >= dto.endTime) {
-      throw new BadRequestException('Schedule end time must be after start time.');
+      throw new BadRequestException(
+        "Schedule end time must be after start time.",
+      );
     }
 
     const batch = await this.getBatchById(dto.batchClassId);
@@ -347,7 +363,7 @@ export class AcademicService {
 
     return this.prisma.classSchedule.findMany({
       where,
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
       include: {
         batchClass: {
           include: {
@@ -360,14 +376,20 @@ export class AcademicService {
   }
 
   async updateSchedule(id: string, dto: any) {
-    const schedule = await this.prisma.classSchedule.findUnique({ where: { id } });
-    if (!schedule) throw new NotFoundException(`Schedule slot with ID ${id} not found.`);
+    const schedule = await this.prisma.classSchedule.findUnique({
+      where: { id },
+    });
+    if (!schedule)
+      throw new NotFoundException(`Schedule slot with ID ${id} not found.`);
     return this.prisma.classSchedule.update({ where: { id }, data: dto });
   }
 
   async deleteSchedule(id: string) {
-    const schedule = await this.prisma.classSchedule.findUnique({ where: { id } });
-    if (!schedule) throw new NotFoundException(`Schedule slot with ID ${id} not found.`);
+    const schedule = await this.prisma.classSchedule.findUnique({
+      where: { id },
+    });
+    if (!schedule)
+      throw new NotFoundException(`Schedule slot with ID ${id} not found.`);
     return this.prisma.classSchedule.delete({ where: { id } });
   }
 }

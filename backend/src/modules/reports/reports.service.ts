@@ -1,12 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import * as ExcelJS from 'exceljs';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import * as ExcelJS from "exceljs";
 
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async generateFeeCollectionExcel(month?: number, year?: number): Promise<Buffer> {
+  async generateFeeCollectionExcel(
+    month?: number,
+    year?: number,
+  ): Promise<Buffer> {
     const targetMonth = month || new Date().getMonth() + 1;
     const targetYear = year || new Date().getFullYear();
 
@@ -18,37 +21,41 @@ export class ReportsService {
         paymentDate: { gte: startDate, lt: endDate },
       },
       include: {
-        student: { select: { studentCode: true, fullName: true, mobileNumber: true } },
+        student: {
+          select: { studentCode: true, fullName: true, mobileNumber: true },
+        },
         teacher: { select: { teacherCode: true, fullName: true } },
         invoice: { select: { invoiceNumber: true } },
         recordedByAdmin: { select: { fullName: true } },
       },
-      orderBy: { paymentDate: 'desc' },
+      orderBy: { paymentDate: "desc" },
     });
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(`Fee Collection ${targetYear}-${targetMonth}`);
+    const worksheet = workbook.addWorksheet(
+      `Fee Collection ${targetYear}-${targetMonth}`,
+    );
 
     worksheet.columns = [
-      { header: 'Receipt No', key: 'receiptNumber', width: 20 },
-      { header: 'Payment Date', key: 'paymentDate', width: 22 },
-      { header: 'Student Code', key: 'studentCode', width: 18 },
-      { header: 'Student Name', key: 'studentName', width: 25 },
-      { header: 'Type', key: 'type', width: 18 },
-      { header: 'Amount Paid (LKR)', key: 'amountPaid', width: 20 },
-      { header: 'Teacher Share (LKR)', key: 'teacherShare', width: 20 },
-      { header: 'Institute Share (LKR)', key: 'instituteShare', width: 20 },
-      { header: 'Payment Method', key: 'paymentMethod', width: 16 },
-      { header: 'Recorded By', key: 'adminName', width: 20 },
+      { header: "Receipt No", key: "receiptNumber", width: 20 },
+      { header: "Payment Date", key: "paymentDate", width: 22 },
+      { header: "Student Code", key: "studentCode", width: 18 },
+      { header: "Student Name", key: "studentName", width: 25 },
+      { header: "Type", key: "type", width: 18 },
+      { header: "Amount Paid (LKR)", key: "amountPaid", width: 20 },
+      { header: "Teacher Share (LKR)", key: "teacherShare", width: 20 },
+      { header: "Institute Share (LKR)", key: "instituteShare", width: 20 },
+      { header: "Payment Method", key: "paymentMethod", width: 16 },
+      { header: "Recorded By", key: "adminName", width: 20 },
     ];
 
     payments.forEach((p) => {
       worksheet.addRow({
         receiptNumber: p.receiptNumber,
-        paymentDate: new Date(p.paymentDate).toLocaleString('en-LK'),
+        paymentDate: new Date(p.paymentDate).toLocaleString("en-LK"),
         studentCode: p.student.studentCode,
         studentName: p.student.fullName,
-        type: p.isAdmissionFee ? 'Admission Fee' : 'Monthly Tuition',
+        type: p.isAdmissionFee ? "Admission Fee" : "Monthly Tuition",
         amountPaid: Number(p.amountPaid),
         teacherShare: Number(p.teacherShareAmount),
         instituteShare: Number(p.instituteShareAmount),
@@ -69,8 +76,8 @@ export class ReportsService {
     const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
 
     const teachers = await this.prisma.teacher.findMany({
-      where: { status: 'ACTIVE' },
-      orderBy: { fullName: 'asc' },
+      where: { status: "ACTIVE" },
+      orderBy: { fullName: "asc" },
     });
 
     return Promise.all(
@@ -102,22 +109,31 @@ export class ReportsService {
     );
   }
 
-  async generateTeacherPayoutExcel(month?: number, year?: number): Promise<Buffer> {
+  async generateTeacherPayoutExcel(
+    month?: number,
+    year?: number,
+  ): Promise<Buffer> {
     const data = await this.getTeacherPayoutSummaryData(month, year);
     const targetMonth = month || new Date().getMonth() + 1;
     const targetYear = year || new Date().getFullYear();
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(`Teacher Payouts ${targetYear}-${targetMonth}`);
+    const worksheet = workbook.addWorksheet(
+      `Teacher Payouts ${targetYear}-${targetMonth}`,
+    );
 
     worksheet.columns = [
-      { header: 'Teacher Code', key: 'teacherCode', width: 18 },
-      { header: 'Teacher Name', key: 'fullName', width: 25 },
-      { header: 'Commission Split %', key: 'commissionPct', width: 20 },
-      { header: 'Gross Fee Collections (LKR)', key: 'totalGross', width: 25 },
-      { header: 'Teacher Net Payout (LKR)', key: 'teacherPayout', width: 25 },
-      { header: 'Institute Share Retained (LKR)', key: 'instituteShare', width: 25 },
-      { header: 'Total Transactions', key: 'paymentCount', width: 20 },
+      { header: "Teacher Code", key: "teacherCode", width: 18 },
+      { header: "Teacher Name", key: "fullName", width: 25 },
+      { header: "Commission Split %", key: "commissionPct", width: 20 },
+      { header: "Gross Fee Collections (LKR)", key: "totalGross", width: 25 },
+      { header: "Teacher Net Payout (LKR)", key: "teacherPayout", width: 25 },
+      {
+        header: "Institute Share Retained (LKR)",
+        key: "instituteShare",
+        width: 25,
+      },
+      { header: "Total Transactions", key: "paymentCount", width: 20 },
     ];
 
     data.forEach((row) => {

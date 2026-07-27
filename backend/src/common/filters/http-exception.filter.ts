@@ -5,8 +5,8 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
+} from "@nestjs/common";
+import { Request, Response } from "express";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -25,16 +25,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse: any =
       exception instanceof HttpException
         ? exception.getResponse()
-        : { message: 'Internal server error occurred.' };
+        : { message: "Internal server error occurred." };
 
     const errorDetails =
-      typeof exceptionResponse === 'object' && exceptionResponse !== null
+      typeof exceptionResponse === "object" && exceptionResponse !== null
         ? exceptionResponse.message || exceptionResponse
         : exceptionResponse;
 
     this.logger.error(
       `HTTP ${status} Error on ${request.method} ${request.url}: ${JSON.stringify(errorDetails)}`,
-      exception instanceof Error ? exception.stack : '',
+      exception instanceof Error ? exception.stack : "",
     );
 
     response.status(status).json({
@@ -42,20 +42,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       error: {
         code:
-          status === HttpStatus.UNPROCESSABLE_ENTITY || status === HttpStatus.BAD_REQUEST
-            ? 'VALIDATION_ERROR'
+          status === HttpStatus.UNPROCESSABLE_ENTITY ||
+          status === HttpStatus.BAD_REQUEST
+            ? "VALIDATION_ERROR"
             : status === HttpStatus.UNAUTHORIZED
-            ? 'UNAUTHORIZED'
-            : status === HttpStatus.FORBIDDEN
-            ? 'FORBIDDEN'
-            : status === HttpStatus.NOT_FOUND
-            ? 'NOT_FOUND'
-            : 'INTERNAL_SERVER_ERROR',
+              ? "UNAUTHORIZED"
+              : status === HttpStatus.FORBIDDEN
+                ? "FORBIDDEN"
+                : status === HttpStatus.NOT_FOUND
+                  ? "NOT_FOUND"
+                  : "INTERNAL_SERVER_ERROR",
         message: Array.isArray(errorDetails)
-          ? 'Validation failed for request payload.'
-          : typeof errorDetails === 'string'
-          ? errorDetails
-          : errorDetails.message || 'An error occurred.',
+          ? "Validation failed for request payload."
+          : typeof errorDetails === "string"
+            ? errorDetails
+            : errorDetails.message || "An error occurred.",
         details: Array.isArray(errorDetails) ? errorDetails : undefined,
       },
       timestamp: new Date().toISOString(),

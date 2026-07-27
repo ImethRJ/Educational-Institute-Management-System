@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { MarkBulkAttendanceDto } from './dto/mark-attendance.dto';
-import { AttendanceQueryDto } from './dto/attendance-query.dto';
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { MarkBulkAttendanceDto } from "./dto/mark-attendance.dto";
+import { AttendanceQueryDto } from "./dto/attendance-query.dto";
 
 @Injectable()
 export class AttendanceService {
@@ -21,7 +17,9 @@ export class AttendanceService {
       where: { id: dto.batchClassId },
     });
     if (!batch) {
-      throw new NotFoundException(`Batch class with ID ${dto.batchClassId} not found.`);
+      throw new NotFoundException(
+        `Batch class with ID ${dto.batchClassId} not found.`,
+      );
     }
 
     const savedRecords = await this.prisma.$transaction(async (tx) => {
@@ -55,8 +53,8 @@ export class AttendanceService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'BULK_ATTENDANCE_MARKED',
-          entityName: 'student_attendance',
+          action: "BULK_ATTENDANCE_MARKED",
+          entityName: "student_attendance",
           entityId: dto.batchClassId,
           newValues: { count: dto.records.length, date: dto.attendanceDate },
         },
@@ -65,7 +63,9 @@ export class AttendanceService {
       return results;
     });
 
-    this.logger.log(`Marked ${savedRecords.length} attendance records for batch ${dto.batchClassId} on ${dto.attendanceDate}.`);
+    this.logger.log(
+      `Marked ${savedRecords.length} attendance records for batch ${dto.batchClassId} on ${dto.attendanceDate}.`,
+    );
     return { count: savedRecords.length, records: savedRecords };
   }
 
@@ -83,7 +83,7 @@ export class AttendanceService {
 
     return this.prisma.studentAttendance.findMany({
       where,
-      orderBy: { attendanceDate: 'desc' },
+      orderBy: { attendanceDate: "desc" },
       include: {
         student: { select: { studentCode: true, fullName: true } },
         batchClass: { select: { batchName: true } },
@@ -100,7 +100,11 @@ export class AttendanceService {
     batchClassId: string,
     month: number,
     year: number,
-  ): Promise<{ totalSessions: number; presentCount: number; percentage: number }> {
+  ): Promise<{
+    totalSessions: number;
+    presentCount: number;
+    percentage: number;
+  }> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
@@ -117,10 +121,11 @@ export class AttendanceService {
 
     const totalSessions = records.length;
     const presentCount = records.filter(
-      (r) => r.status === 'PRESENT' || r.status === 'LATE',
+      (r) => r.status === "PRESENT" || r.status === "LATE",
     ).length;
 
-    const percentage = totalSessions > 0 ? (presentCount / totalSessions) * 100 : 0.0;
+    const percentage =
+      totalSessions > 0 ? (presentCount / totalSessions) * 100 : 0.0;
 
     return {
       totalSessions,
@@ -129,9 +134,17 @@ export class AttendanceService {
     };
   }
 
-  async updateAttendanceRecord(id: string, status: any, remarks?: string, adminId?: string) {
-    const record = await this.prisma.studentAttendance.findUnique({ where: { id } });
-    if (!record) throw new NotFoundException(`Attendance record with ID ${id} not found.`);
+  async updateAttendanceRecord(
+    id: string,
+    status: any,
+    remarks?: string,
+    adminId?: string,
+  ) {
+    const record = await this.prisma.studentAttendance.findUnique({
+      where: { id },
+    });
+    if (!record)
+      throw new NotFoundException(`Attendance record with ID ${id} not found.`);
 
     return this.prisma.studentAttendance.update({
       where: { id },
@@ -144,8 +157,11 @@ export class AttendanceService {
   }
 
   async deleteAttendanceRecord(id: string) {
-    const record = await this.prisma.studentAttendance.findUnique({ where: { id } });
-    if (!record) throw new NotFoundException(`Attendance record with ID ${id} not found.`);
+    const record = await this.prisma.studentAttendance.findUnique({
+      where: { id },
+    });
+    if (!record)
+      throw new NotFoundException(`Attendance record with ID ${id} not found.`);
     return this.prisma.studentAttendance.delete({ where: { id } });
   }
 }

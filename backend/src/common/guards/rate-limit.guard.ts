@@ -4,8 +4,8 @@ import {
   ExecutionContext,
   HttpException,
   HttpStatus,
-} from '@nestjs/common';
-import { RedisService } from '../redis/redis.service';
+} from "@nestjs/common";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
@@ -13,7 +13,7 @@ export class RateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
-    const clientIp = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const clientIp = req.ip || req.connection?.remoteAddress || "127.0.0.1";
     const key = `ratelimit:${clientIp}:${req.path}`;
 
     const limit = 100; // max requests
@@ -27,7 +27,7 @@ export class RateLimitGuard implements CanActivate {
 
     if (currentRequests > limit) {
       throw new HttpException(
-        'Too many requests sent from this IP address. Please slow down and try again in 1 minute.',
+        "Too many requests sent from this IP address. Please slow down and try again in 1 minute.",
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

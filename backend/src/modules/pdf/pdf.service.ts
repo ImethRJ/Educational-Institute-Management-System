@@ -1,12 +1,12 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import * as puppeteer from 'puppeteer';
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import * as puppeteer from "puppeteer";
 
 @Injectable()
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async generateReceiptPdf(receiptNumber: string): Promise<Buffer> {
     const payment = await this.prisma.paymentRecord.findUnique({
@@ -20,7 +20,9 @@ export class PdfService {
     });
 
     if (!payment) {
-      throw new NotFoundException(`Payment receipt ${receiptNumber} not found.`);
+      throw new NotFoundException(
+        `Payment receipt ${receiptNumber} not found.`,
+      );
     }
 
     const htmlContent = `
@@ -48,14 +50,14 @@ export class PdfService {
         <div class="receipt-title">OFFICIAL PAYMENT RECEIPT</div>
         <table class="details-table">
           <tr><td class="label">Receipt Number:</td><td><strong>${payment.receiptNumber}</strong></td></tr>
-          <tr><td class="label">Date & Time:</td><td>${new Date(payment.paymentDate).toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}</td></tr>
+          <tr><td class="label">Date & Time:</td><td>${new Date(payment.paymentDate).toLocaleString("en-LK", { timeZone: "Asia/Colombo" })}</td></tr>
           <tr><td class="label">Student Code:</td><td>${payment.student.studentCode}</td></tr>
           <tr><td class="label">Student Name:</td><td>${payment.student.fullName}</td></tr>
-          <tr><td class="label">Payment Purpose:</td><td>${payment.isAdmissionFee ? 'One-Time Admission Fee' : `Monthly Tuition (${payment.invoice?.batchClass?.subject?.name || 'Class Fee'})`}</td></tr>
+          <tr><td class="label">Payment Purpose:</td><td>${payment.isAdmissionFee ? "One-Time Admission Fee" : `Monthly Tuition (${payment.invoice?.batchClass?.subject?.name || "Class Fee"})`}</td></tr>
           <tr><td class="label">Payment Method:</td><td>${payment.paymentMethod}</td></tr>
           <tr><td class="label">Issued By Admin:</td><td>${payment.recordedByAdmin.fullName}</td></tr>
         </table>
-        <div class="total-box">Amount Paid: LKR ${Number(payment.amountPaid).toLocaleString('en-LK', { minimumFractionDigits: 2 })}</div>
+        <div class="total-box">Amount Paid: LKR ${Number(payment.amountPaid).toLocaleString("en-LK", { minimumFractionDigits: 2 })}</div>
         <div class="footer">Thank you for your payment. This is a computer-generated official receipt.</div>
       </body>
       </html>
@@ -63,16 +65,16 @@ export class PdfService {
 
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
-      format: 'A5',
+      format: "A5",
       landscape: false,
       printBackground: true,
-      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+      margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
     });
 
     await browser.close();
@@ -84,8 +86,8 @@ export class PdfService {
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
     const teachers = await this.prisma.teacher.findMany({
-      where: { status: 'ACTIVE' },
-      orderBy: { fullName: 'asc' },
+      where: { status: "ACTIVE" },
+      orderBy: { fullName: "asc" },
     });
 
     const teacherPayouts = await Promise.all(
@@ -115,12 +117,34 @@ export class PdfService {
       }),
     );
 
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthLabel = monthNames[month - 1] || 'July';
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const monthLabel = monthNames[month - 1] || "July";
 
-    const grandGross = teacherPayouts.reduce((acc, curr) => acc + curr.totalGross, 0);
-    const grandPayout = teacherPayouts.reduce((acc, curr) => acc + curr.teacherPayout, 0);
-    const grandInstitute = teacherPayouts.reduce((acc, curr) => acc + curr.instituteShare, 0);
+    const grandGross = teacherPayouts.reduce(
+      (acc, curr) => acc + curr.totalGross,
+      0,
+    );
+    const grandPayout = teacherPayouts.reduce(
+      (acc, curr) => acc + curr.teacherPayout,
+      0,
+    );
+    const grandInstitute = teacherPayouts.reduce(
+      (acc, curr) => acc + curr.instituteShare,
+      0,
+    );
 
     const rowsHtml = teacherPayouts
       .map(
@@ -129,13 +153,13 @@ export class PdfService {
           <td><strong>${t.teacherCode}</strong></td>
           <td>${t.fullName}</td>
           <td style="text-align: center;">${t.commissionPct}%</td>
-          <td style="text-align: right;">LKR ${t.totalGross.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</td>
-          <td style="text-align: right; font-weight: bold; color: #0284c7;">LKR ${t.teacherPayout.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</td>
-          <td style="text-align: right; color: #16a34a;">LKR ${t.instituteShare.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">LKR ${t.totalGross.toLocaleString("en-LK", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; font-weight: bold; color: #0284c7;">LKR ${t.teacherPayout.toLocaleString("en-LK", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; color: #16a34a;">LKR ${t.instituteShare.toLocaleString("en-LK", { minimumFractionDigits: 2 })}</td>
         </tr>
       `,
       )
-      .join('');
+      .join("");
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -176,25 +200,25 @@ export class PdfService {
           </tbody>
         </table>
         <div class="grand-total">
-          Total Teacher Payouts: LKR ${grandPayout.toLocaleString('en-LK', { minimumFractionDigits: 2 })} | Total Institute Net Share: LKR ${grandInstitute.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+          Total Teacher Payouts: LKR ${grandPayout.toLocaleString("en-LK", { minimumFractionDigits: 2 })} | Total Institute Net Share: LKR ${grandInstitute.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
         </div>
-        <div class="footer">Confidential Administrative Financial Report • Generated on ${new Date().toLocaleString('en-LK')}</div>
+        <div class="footer">Confidential Administrative Financial Report • Generated on ${new Date().toLocaleString("en-LK")}</div>
       </body>
       </html>
     `;
 
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
-      format: 'A4',
+      format: "A4",
       landscape: true,
       printBackground: true,
-      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+      margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
     });
 
     await browser.close();

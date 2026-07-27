@@ -3,12 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { StudentRepository } from './student.repository';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateStudentDto } from './dto/create-student.dto';
-import { UpdateStudentDto } from './dto/update-student.dto';
-import { StudentQueryDto } from './dto/student-query.dto';
+} from "@nestjs/common";
+import { StudentRepository } from "./student.repository";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { CreateStudentDto } from "./dto/create-student.dto";
+import { UpdateStudentDto } from "./dto/update-student.dto";
+import { StudentQueryDto } from "./dto/student-query.dto";
 
 @Injectable()
 export class StudentService {
@@ -20,11 +20,14 @@ export class StudentService {
   ) {}
 
   async createStudent(dto: CreateStudentDto, adminId: string) {
-    const studentCode = await this.studentRepository.generateNextStudentCode('COL');
+    const studentCode =
+      await this.studentRepository.generateNextStudentCode("COL");
 
     let branchIdToUse = dto.branchId;
     if (!branchIdToUse) {
-      const defaultBranch = await this.prisma.branch.findFirst({ where: { code: 'MAIN' } });
+      const defaultBranch = await this.prisma.branch.findFirst({
+        where: { code: "MAIN" },
+      });
       branchIdToUse = defaultBranch?.id;
     }
 
@@ -73,7 +76,7 @@ export class StudentService {
           data: {
             studentId: newStudent.id,
             guardianId: guardian.id,
-            relationship: dto.guardianRelationship || 'Parent',
+            relationship: dto.guardianRelationship || "Parent",
             isPrimary: true,
           },
         });
@@ -95,17 +98,22 @@ export class StudentService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'STUDENT_ADMISSION_REGISTERED',
-          entityName: 'student',
+          action: "STUDENT_ADMISSION_REGISTERED",
+          entityName: "student",
           entityId: newStudent.id,
-          newValues: { studentCode: newStudent.studentCode, fullName: newStudent.fullName },
+          newValues: {
+            studentCode: newStudent.studentCode,
+            fullName: newStudent.fullName,
+          },
         },
       });
 
       return newStudent;
     });
 
-    this.logger.log(`Student ${student.studentCode} (${student.fullName}) registered successfully.`);
+    this.logger.log(
+      `Student ${student.studentCode} (${student.fullName}) registered successfully.`,
+    );
     return student;
   }
 
@@ -144,11 +152,17 @@ export class StudentService {
       await tx.auditLog.create({
         data: {
           adminId,
-          action: 'STUDENT_PROFILE_UPDATED',
-          entityName: 'student',
+          action: "STUDENT_PROFILE_UPDATED",
+          entityName: "student",
           entityId: id,
-          oldValues: { fullName: existing.fullName, feeCategory: existing.feeCategory },
-          newValues: { fullName: result.fullName, feeCategory: result.feeCategory },
+          oldValues: {
+            fullName: existing.fullName,
+            feeCategory: existing.feeCategory,
+          },
+          newValues: {
+            fullName: result.fullName,
+            feeCategory: result.feeCategory,
+          },
         },
       });
 
@@ -158,7 +172,11 @@ export class StudentService {
     return updated;
   }
 
-  async enrollStudentInBatch(studentId: string, batchClassId: string, adminId: string) {
+  async enrollStudentInBatch(
+    studentId: string,
+    batchClassId: string,
+    adminId: string,
+  ) {
     await this.getStudentById(studentId);
 
     const existingEnrollment = await this.prisma.studentEnrollment.findUnique({
@@ -169,7 +187,9 @@ export class StudentService {
 
     if (existingEnrollment) {
       if (existingEnrollment.isActive) {
-        throw new BadRequestException('Student is already actively enrolled in this batch.');
+        throw new BadRequestException(
+          "Student is already actively enrolled in this batch.",
+        );
       }
       return this.prisma.studentEnrollment.update({
         where: { id: existingEnrollment.id },
@@ -184,8 +204,8 @@ export class StudentService {
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'STUDENT_BATCH_ENROLLED',
-        entityName: 'student_enrollment',
+        action: "STUDENT_BATCH_ENROLLED",
+        entityName: "student_enrollment",
         entityId: enrollment.id,
       },
     });
@@ -193,25 +213,29 @@ export class StudentService {
     return enrollment;
   }
 
-  async unenrollStudentFromBatch(studentId: string, batchClassId: string, adminId: string) {
+  async unenrollStudentFromBatch(
+    studentId: string,
+    batchClassId: string,
+    adminId: string,
+  ) {
     const enrollment = await this.prisma.studentEnrollment.findUnique({
       where: { studentId_batchClassId: { studentId, batchClassId } },
     });
 
     if (!enrollment || !enrollment.isActive) {
-      throw new NotFoundException('Active batch enrollment not found.');
+      throw new NotFoundException("Active batch enrollment not found.");
     }
 
     const updated = await this.prisma.studentEnrollment.update({
       where: { id: enrollment.id },
-      data: { isActive: false, status: 'DROPPED', droppedAt: new Date() },
+      data: { isActive: false, status: "DROPPED", droppedAt: new Date() },
     });
 
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'STUDENT_BATCH_UNENROLLED',
-        entityName: 'student_enrollment',
+        action: "STUDENT_BATCH_UNENROLLED",
+        entityName: "student_enrollment",
         entityId: enrollment.id,
       },
     });
@@ -224,17 +248,17 @@ export class StudentService {
 
     const deactivated = await this.prisma.student.update({
       where: { id },
-      data: { status: 'INACTIVE' },
+      data: { status: "INACTIVE" },
     });
 
     await this.prisma.auditLog.create({
       data: {
         adminId,
-        action: 'STUDENT_DEACTIVATED',
-        entityName: 'student',
+        action: "STUDENT_DEACTIVATED",
+        entityName: "student",
         entityId: id,
         oldValues: { status: student.status },
-        newValues: { status: 'INACTIVE' },
+        newValues: { status: "INACTIVE" },
       },
     });
 

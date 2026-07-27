@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { PdfService } from './pdf.service';
-import { PdfController } from './pdf.controller';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { Module } from "@nestjs/common";
+import { PdfService } from "./pdf.service";
+import { PdfController } from "./pdf.controller";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Module({
   controllers: [PdfController],

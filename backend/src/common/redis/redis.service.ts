@@ -1,6 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -10,9 +15,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
-    const host = this.configService.get<string>('REDIS_HOST', 'localhost');
-    const port = this.configService.get<number>('REDIS_PORT', 6379);
-    const password = this.configService.get<string>('REDIS_PASSWORD', '');
+    const host = this.configService.get<string>("REDIS_HOST", "localhost");
+    const port = this.configService.get<number>("REDIS_PORT", 6379);
+    const password = this.configService.get<string>("REDIS_PASSWORD", "");
 
     this.client = new Redis({
       host,
@@ -22,7 +27,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.connect().catch((err) => {
-      this.logger.warn(`Redis connection warning (Proceeding in memory fallback if offline): ${err.message}`);
+      this.logger.warn(
+        `Redis connection warning (Proceeding in memory fallback if offline): ${err.message}`,
+      );
     });
   }
 
@@ -41,7 +48,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
     try {
       if (ttlSeconds) {
-        await this.client.set(key, value, 'EX', ttlSeconds);
+        await this.client.set(key, value, "EX", ttlSeconds);
       } else {
         await this.client.set(key, value);
       }

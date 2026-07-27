@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { Prisma, Teacher } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { Prisma, Teacher } from "@prisma/client";
 
 @Injectable()
 export class TeacherRepository {
@@ -49,9 +49,9 @@ export class TeacherRepository {
 
     if (search) {
       where.OR = [
-        { teacherCode: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { nicOrPassport: { contains: search, mode: 'insensitive' } },
+        { teacherCode: { contains: search, mode: "insensitive" } },
+        { fullName: { contains: search, mode: "insensitive" } },
+        { nicOrPassport: { contains: search, mode: "insensitive" } },
         { mobileNumber: { contains: search } },
       ];
     }
@@ -62,7 +62,7 @@ export class TeacherRepository {
 
     return this.prisma.teacher.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         teacherSubjects: {
           include: { subject: { select: { name: true, code: true } } },
@@ -87,12 +87,12 @@ export class TeacherRepository {
 
     const lastTeacher = await this.prisma.teacher.findFirst({
       where: { teacherCode: { startsWith: prefix } },
-      orderBy: { teacherCode: 'desc' },
+      orderBy: { teacherCode: "desc" },
     });
 
     let nextSeq = 1;
     if (lastTeacher) {
-      const parts = lastTeacher.teacherCode.split('-');
+      const parts = lastTeacher.teacherCode.split("-");
       const lastSeqStr = parts[parts.length - 1];
       const parsedSeq = parseInt(lastSeqStr, 10);
       if (!isNaN(parsedSeq)) {
@@ -100,6 +100,6 @@ export class TeacherRepository {
       }
     }
 
-    return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
+    return `${prefix}${nextSeq.toString().padStart(3, "0")}`;
   }
 }

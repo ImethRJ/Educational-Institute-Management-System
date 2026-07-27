@@ -3,9 +3,9 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 export interface ResponseEnvelope<T> {
   success: boolean;
@@ -16,9 +16,10 @@ export interface ResponseEnvelope<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, ResponseEnvelope<T>>
-{
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  ResponseEnvelope<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -29,11 +30,11 @@ export class TransformInterceptor<T>
     return next.handle().pipe(
       map((res) => {
         // If response already has a custom envelope structure (e.g. paginated result with meta)
-        if (res && typeof res === 'object' && 'data' in res && 'meta' in res) {
+        if (res && typeof res === "object" && "data" in res && "meta" in res) {
           return {
             success: true,
             statusCode,
-            message: res.message || 'Operation successful.',
+            message: res.message || "Operation successful.",
             data: res.data,
             meta: {
               ...res.meta,
@@ -46,10 +47,11 @@ export class TransformInterceptor<T>
           success: true,
           statusCode,
           message:
-            res && typeof res === 'object' && res.message
+            res && typeof res === "object" && res.message
               ? res.message
-              : 'Operation successful.',
-          data: res && typeof res === 'object' && 'data' in res ? res.data : res,
+              : "Operation successful.",
+          data:
+            res && typeof res === "object" && "data" in res ? res.data : res,
           meta: {
             timestamp: new Date().toISOString(),
           },

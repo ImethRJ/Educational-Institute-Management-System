@@ -17,16 +17,18 @@ export function validateSriLankaNIC(nic: string): boolean {
 /**
  * Extracts Birth Year and Gender from Sri Lankan NIC
  */
-export function parseNICMetadata(nic: string): { birthYear: number; isFemale: boolean } | null {
+export function parseNICMetadata(
+  nic: string,
+): { birthYear: number; isFemale: boolean } | null {
   if (!validateSriLankaNIC(nic)) return null;
   const cleanNic = nic.trim().toUpperCase();
 
-  let yearStr = '';
+  let yearStr = "";
   let dayCode = 0;
 
   if (cleanNic.length === 10) {
     // Old NIC: First 2 digits = Year (e.g. "95" -> 1995)
-    yearStr = '19' + cleanNic.substring(0, 2);
+    yearStr = "19" + cleanNic.substring(0, 2);
     dayCode = parseInt(cleanNic.substring(2, 5), 10);
   } else {
     // New NIC: First 4 digits = Year (e.g. "1995")
