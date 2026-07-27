@@ -14,7 +14,9 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    const details = error.response?.data?.error?.details;
     const message =
+      (Array.isArray(details) && details.length > 0 ? details.join(' | ') : null) ||
       error.response?.data?.error?.message ||
       error.response?.data?.message ||
       'An unexpected error occurred. Please check your network connection.';

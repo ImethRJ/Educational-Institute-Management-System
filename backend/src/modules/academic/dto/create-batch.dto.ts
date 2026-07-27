@@ -16,7 +16,7 @@ export class CreateBatchDto {
     description: "Branch ID",
   })
   @IsNotEmpty({ message: "Branch ID is required." })
-  @IsUUID("4", { message: "Invalid branch UUID." })
+  @IsUUID(undefined, { message: "Invalid branch UUID." })
   branchId: string;
 
   @ApiProperty({
@@ -24,7 +24,7 @@ export class CreateBatchDto {
     description: "Academic Year ID",
   })
   @IsNotEmpty({ message: "Academic Year ID is required." })
-  @IsUUID("4", { message: "Invalid academic year UUID." })
+  @IsUUID(undefined, { message: "Invalid academic year UUID." })
   academicYearId: string;
 
   @ApiPropertyOptional({
@@ -33,7 +33,7 @@ export class CreateBatchDto {
   })
   @ValidateIf((o, val) => val !== null && val !== undefined && val !== "")
   @IsOptional()
-  @IsUUID("4", { message: "Invalid grade level UUID." })
+  @IsUUID(undefined, { message: "Invalid grade level UUID." })
   gradeLevelId?: string | null;
 
   @ApiPropertyOptional({
@@ -42,7 +42,7 @@ export class CreateBatchDto {
   })
   @IsOptional()
   @IsArray()
-  @IsUUID("4", { each: true, message: "Invalid grade level UUID in list." })
+  @IsUUID(undefined, { each: true, message: "Invalid grade level UUID in list." })
   gradeLevelIds?: string[];
 
   @ApiProperty({
@@ -50,7 +50,7 @@ export class CreateBatchDto {
     description: "Subject ID",
   })
   @IsNotEmpty({ message: "Subject ID is required." })
-  @IsUUID("4", { message: "Invalid subject UUID." })
+  @IsUUID(undefined, { message: "Invalid subject UUID." })
   subjectId: string;
 
   @ApiProperty({
@@ -58,7 +58,7 @@ export class CreateBatchDto {
     description: "Assigned Teacher ID",
   })
   @IsNotEmpty({ message: "Teacher ID is required." })
-  @IsUUID("4", { message: "Invalid teacher UUID." })
+  @IsUUID(undefined, { message: "Invalid teacher UUID." })
   teacherId: string;
 
   @ApiProperty({

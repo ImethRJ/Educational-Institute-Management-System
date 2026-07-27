@@ -125,7 +125,13 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       onClose();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to save batch class.');
+      const details = err?.response?.data?.error?.details;
+      const msg =
+        (Array.isArray(details) && details.length > 0 ? details.join(' | ') : null) ||
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.message ||
+        'Failed to save batch class.';
+      toast.error(msg);
     },
   });
 
@@ -133,6 +139,16 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!subjectId) {
+      toast.error('Please select an Open Subject.');
+      return;
+    }
+    if (!teacherId) {
+      toast.error('Please select an Assigned Teacher.');
+      return;
+    }
+
     const payload: any = {
       batchName,
       monthlyFee: Number(monthlyFee),
@@ -143,8 +159,18 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
       gradeLevelId: selectedGradeIds[0] || null,
     };
     if (!isEditing) {
-      payload.branchId = branchId || branches[0]?.id;
-      payload.academicYearId = academicYearId || years[0]?.id;
+      const finalBranchId = branchId || branches[0]?.id;
+      const finalAcademicYearId = academicYearId || years[0]?.id;
+      if (!finalBranchId) {
+        toast.error('Please select an Institute Branch.');
+        return;
+      }
+      if (!finalAcademicYearId) {
+        toast.error('Please select an Academic Year.');
+        return;
+      }
+      payload.branchId = finalBranchId;
+      payload.academicYearId = finalAcademicYearId;
     }
 
     mutation.mutate(payload);
